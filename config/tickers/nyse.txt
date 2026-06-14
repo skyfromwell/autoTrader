@@ -1,0 +1,55 @@
+# NYSE — Large-cap blue-chip tickers
+# Financials
+JPM
+BAC
+WFC
+GS
+MS
+BLK
+AXP
+V
+MA
+# Healthcare / Pharma
+JNJ
+UNH
+LLY
+PFE
+MRK
+ABT
+TMO
+DHR
+# Energy
+XOM
+CVX
+COP
+SLB
+# Industrials
+CAT
+HON
+GE
+RTX
+LMT
+BA
+UPS
+# Consumer
+PG
+KO
+MCD
+WMT
+HD
+NKE
+TGT
+# Materials / Mining
+FCX
+NEM
+# Utilities / REITs
+NEE
+DUK
+# Tech (NYSE-listed)
+IBM
+DELL
+HPE
+# Comms
+T
+VZ
+DIS

@@ -1,0 +1,52 @@
+# NASDAQ — Large-cap & mega-cap tickers
+# Tech mega-caps
+AAPL
+MSFT
+NVDA
+GOOGL
+GOOG
+META
+AMZN
+TSLA
+AVGO
+ORCL
+# Semiconductors
+AMD
+QCOM
+AMAT
+LRCX
+KLAC
+MRVL
+MU
+INTC
+# Software / Cloud
+ADBE
+CRM
+PANW
+SNPS
+CDNS
+FTNT
+# Biotech / Healthcare
+AMGN
+GILD
+REGN
+VRTX
+ISRG
+IDXX
+DXCM
+# Consumer / Retail
+COST
+SBUX
+MNST
+PEP
+# Financials / Fintech
+PYPL
+COIN
+# EV / Energy
+# Comms
+NFLX
+TMUS
+CSCO
+# Growth
+APP
+PLTR
