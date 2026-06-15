@@ -27,14 +27,6 @@ OUTPUT_DIR  = Path("output")
 TRADE_LOG   = OUTPUT_DIR / "trade_log.csv"
 
 log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s %(message)s",
-    handlers=[
-        logging.FileHandler(OUTPUT_DIR / "trader.log"),
-        logging.StreamHandler(),
-    ],
-)
 
 
 # ── Alpaca client ─────────────────────────────────────────────────────────────
@@ -146,6 +138,11 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None) ->
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(levelname)-8s %(message)s",
+        handlers=[logging.FileHandler(OUTPUT_DIR / "trader.log"), logging.StreamHandler()],
+    )
     # Quick test: print open positions
     try:
         client = _get_client()
