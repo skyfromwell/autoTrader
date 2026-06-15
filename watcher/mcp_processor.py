@@ -30,30 +30,6 @@ manager    = PositionManager()
 _CRYPTO_PREFIXES = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
 _FOREX_PREFIXES  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 
-_TP_SL_BY_CLASS = {
-    # Chart default is 4x/2x; forex and crypto override with wider targets.
-    "forex":  (5.5, 2.5),
-    "crypto": (8.0, 3.0),
-}
-
-
-def _asset_class(pair: str) -> str:
-    prefix = pair.split(":")[0].upper() if ":" in pair else ""
-    if prefix in _CRYPTO_PREFIXES:
-        return "crypto"
-    if prefix in _FOREX_PREFIXES:
-        return "forex"
-    return "stock"
-
-
-def _calc_tp_sl(entry: float, atr: float, direction: str,
-                asset_class: str) -> tuple[float, float]:
-    tp_mult, sl_mult = _TP_SL_BY_CLASS[asset_class]
-    if direction == "long":
-        return entry + atr * tp_mult, entry - atr * sl_mult
-    return entry - atr * tp_mult, entry + atr * sl_mult
-
-
 def _broker_execute(pair: str, direction: str, price: float | None = None) -> None:
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
@@ -188,14 +164,11 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     atr   = _safe_float(raw.get("ATR"))
     pred  = _safe_float(raw.get("Prediction", 0))
 
-    # Stocks: use Jingda's pre-calculated levels (needed for its RL labeling).
-    # Forex/crypto: calculate from ATR with our own multipliers.
-    ac = _asset_class(pair)
-    if ac == "stock":
-        tp = _safe_float(raw.get("TP Level"))
-        sl = _safe_float(raw.get("SL Level"))
-    else:
-        tp, sl = _calc_tp_sl(entry, atr, direction, ac)
+    # Always use Jingda's pre-calculated levels from the chart.
+    # Pine Script auto-detects multipliers via syminfo.type, so chart and
+    # broker orders stay identical across stocks, forex, and crypto.
+    tp = _safe_float(raw.get("TP Level"))
+    sl = _safe_float(raw.get("SL Level"))
 
     log.info(f"[{pair}] ✅ NEW {direction.upper()} | "
              f"entry={entry:.5f} tp={tp:.5f} sl={sl:.5f} "
