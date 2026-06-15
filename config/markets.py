@@ -113,7 +113,7 @@ MARKETS = {
         "close_time": "16:00",
         "tv_prefix":  "NASDAQ",
         "category":   "us",
-        "filter_overrides": {"enable_rs": False, "max_pe_ratio": 50},
+        "filter_overrides": {"enable_rs": False, "max_pe_ratio": 50, "max_ps_ratio": 35},
     },
     "nyse": {
         "name":       "New York Stock Exchange",
@@ -125,7 +125,7 @@ MARKETS = {
         "close_time": "16:00",
         "tv_prefix":  "NYSE",
         "category":   "us",
-        "filter_overrides": {"enable_rs": False, "max_pe_ratio": 50},
+        "filter_overrides": {"enable_rs": False, "max_pe_ratio": 50, "max_ps_ratio": 35},
     },
 }
 
