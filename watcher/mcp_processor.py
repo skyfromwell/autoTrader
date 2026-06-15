@@ -31,8 +31,9 @@ _CRYPTO_PREFIXES = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAM
 _FOREX_PREFIXES  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 
 _TP_SL_BY_CLASS = {
-    "forex":  (5.5, 2.5),   # matches Jingda's Pine Script multipliers
-    "crypto": (8.0, 3.0),   # wider for crypto volatility
+    # Chart default is 4x/2x; forex and crypto override with wider targets.
+    "forex":  (5.5, 2.5),
+    "crypto": (8.0, 3.0),
 }
 
 

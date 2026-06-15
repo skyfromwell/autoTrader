@@ -30,7 +30,11 @@ OUTPUT_DIR = Path("output")
 STATE_FILE = OUTPUT_DIR / "watcher_state.json"
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
-JINGDA_STUDY = "JingdaAIv2"   # substring match against Data Window study name
+JINGDA_STUDY = "Jingda"   # substring match against Data Window study name
+
+# Prefixes that trade 24/7 (crypto) or 24/5 weekdays (forex) — no hours check needed
+_CRYPTO_PREFIXES_WL = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
+_FOREX_PREFIXES_WL  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -78,10 +82,18 @@ def _seconds_until_next_open(market_cfg: dict) -> int:
 def _open_markets_for(symbols: list[str]) -> set[str]:
     """Return set of tv_prefixes whose markets are currently open."""
     from config.markets import PREFIX_MAP
+    now_utc = datetime.now(ZoneInfo("UTC"))
     open_prefixes = set()
     for sym in symbols:
         prefix = sym.split(":")[0] if ":" in sym else None
-        if prefix and prefix in PREFIX_MAP:
+        if not prefix:
+            continue
+        if prefix in _CRYPTO_PREFIXES_WL:
+            open_prefixes.add(prefix)   # crypto: always open
+        elif prefix in _FOREX_PREFIXES_WL:
+            if now_utc.weekday() < 5:   # forex: weekdays only
+                open_prefixes.add(prefix)
+        elif prefix in PREFIX_MAP:
             if _market_is_open(PREFIX_MAP[prefix]):
                 open_prefixes.add(prefix)
     return open_prefixes
@@ -90,6 +102,23 @@ def _open_markets_for(symbols: list[str]) -> set[str]:
 def _seconds_until_any_open(symbols: list[str]) -> int:
     """Seconds until the soonest market open across all watched symbols."""
     from config.markets import PREFIX_MAP
+    now_utc = datetime.now(ZoneInfo("UTC"))
+
+    # If any crypto symbol is in the list, we're always open
+    for sym in symbols:
+        prefix = sym.split(":")[0] if ":" in sym else None
+        if prefix in _CRYPTO_PREFIXES_WL:
+            return 60
+
+    # Forex open on weekdays — find next Monday if weekend
+    for sym in symbols:
+        prefix = sym.split(":")[0] if ":" in sym else None
+        if prefix in _FOREX_PREFIXES_WL and now_utc.weekday() >= 5:
+            days_to_monday = (7 - now_utc.weekday()) % 7 or 7
+            next_open = (now_utc + timedelta(days=days_to_monday)).replace(
+                hour=0, minute=0, second=0, microsecond=0)
+            return max(60, int((next_open - now_utc).total_seconds()))
+
     seen_prefixes: set[str] = set()
     min_secs = 24 * 3600
     for sym in symbols:

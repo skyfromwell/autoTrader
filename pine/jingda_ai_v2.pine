@@ -1,0 +1,595 @@
+// change the alert setting with webhook
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// ©jdehorty
+// Jingda New AI v2 — ATR-based TP/SL, partial close at TP, post-TP regime detection
+// Volume confirmation filter, candlestick protection, whipsaw detection
+
+//@version=6
+indicator('Jingda New AI v2', 'JingdaAIv2', true, precision=4, max_labels_count=500)
+
+import jdehorty/MLExtensions/2 as ml
+import jdehorty/KernelFunctions/2 as kernels
+
+// ======================
+// ==== Custom Types ====
+// ======================
+
+type Settings
+    float source
+    int neighborsCount
+    int maxBarsBack
+    int featureCount
+    int colorCompression
+    bool showExits
+    bool useDynamicExits
+
+type Label
+    int long
+    int short
+    int neutral
+
+type FeatureArrays
+    array<float> f1
+    array<float> f2
+    array<float> f3
+    array<float> f4
+    array<float> f5
+
+type FeatureSeries
+    float f1
+    float f2
+    float f3
+    float f4
+    float f5
+
+type FilterSettings
+    bool useVolatilityFilter
+    bool useRegimeFilter
+    bool useAdxFilter
+    float regimeThreshold
+    int adxThreshold
+
+type Filter
+    bool volatility
+    bool regime
+    bool adx
+
+// ==========================
+// ==== Helper Functions ====
+// ==========================
+
+series_from(feature_string, _close, _high, _low, _hlc3, f_paramA, f_paramB) =>
+    switch feature_string
+        "RSI" => ml.n_rsi(_close, f_paramA, f_paramB)
+        "WT"  => ml.n_wt(_hlc3, f_paramA, f_paramB)
+        "CCI" => ml.n_cci(_close, f_paramA, f_paramB)
+        "ADX" => ml.n_adx(_high, _low, _close, f_paramA)
+
+get_lorentzian_distance(int i, int featureCount, FeatureSeries featureSeries, FeatureArrays featureArrays) =>
+    switch featureCount
+        5 => math.log(1 + math.abs(featureSeries.f1 - array.get(featureArrays.f1, i))) + math.log(1 + math.abs(featureSeries.f2 - array.get(featureArrays.f2, i))) + math.log(1 + math.abs(featureSeries.f3 - array.get(featureArrays.f3, i))) + math.log(1 + math.abs(featureSeries.f4 - array.get(featureArrays.f4, i))) + math.log(1 + math.abs(featureSeries.f5 - array.get(featureArrays.f5, i)))
+        4 => math.log(1 + math.abs(featureSeries.f1 - array.get(featureArrays.f1, i))) + math.log(1 + math.abs(featureSeries.f2 - array.get(featureArrays.f2, i))) + math.log(1 + math.abs(featureSeries.f3 - array.get(featureArrays.f3, i))) + math.log(1 + math.abs(featureSeries.f4 - array.get(featureArrays.f4, i)))
+        3 => math.log(1 + math.abs(featureSeries.f1 - array.get(featureArrays.f1, i))) + math.log(1 + math.abs(featureSeries.f2 - array.get(featureArrays.f2, i))) + math.log(1 + math.abs(featureSeries.f3 - array.get(featureArrays.f3, i)))
+        2 => math.log(1 + math.abs(featureSeries.f1 - array.get(featureArrays.f1, i))) + math.log(1 + math.abs(featureSeries.f2 - array.get(featureArrays.f2, i)))
+
+// ================
+// ==== Inputs ====
+// ================
+
+Settings settings = Settings.new(
+    input.source(title='Source', defval=close, group="General Settings"),
+    input.int(title='Neighbors Count', defval=8, group="General Settings", minval=1, maxval=100, step=1),
+    input.int(title="Max Bars Back", defval=2000, group="General Settings"),
+    input.int(title="Feature Count", defval=5, group="Feature Engineering", minval=2, maxval=5),
+    input.int(title="Color Compression", defval=1, group="General Settings", minval=1, maxval=10),
+    input.bool(title="Show Default Exits", defval=false, group="General Settings", inline="exits"),
+    input.bool(title="Use Dynamic Exits", defval=false, group="General Settings", inline="exits"))
+
+// TP/SL Settings
+// 0 = auto-detect from syminfo.type: stock→4/2, forex→5.5/2.5, crypto→8/3
+tpAtrMultInput = input.float(title="TP ATR Multiplier (0=auto)", defval=0.0, minval=0.0, maxval=10.0, step=0.25, group="TP/SL Settings")
+slAtrMultInput = input.float(title="SL ATR Multiplier (0=auto)", defval=0.0, minval=0.0, maxval=10.0, step=0.25, group="TP/SL Settings")
+_autoTp = syminfo.type == "crypto" ? 8.0 : syminfo.type == "forex" ? 5.5 : 4.0
+_autoSl = syminfo.type == "crypto" ? 3.0 : syminfo.type == "forex" ? 2.5 : 2.0
+tpAtrMult = tpAtrMultInput <= 0 ? _autoTp : tpAtrMultInput
+slAtrMult = slAtrMultInput <= 0 ? _autoSl : slAtrMultInput
+atrPeriod = input.int(title="ATR Period", defval=14, minval=1, group="TP/SL Settings")
+
+showTradeStats = input.bool(true, 'Show Trade Stats', group="General Settings")
+useWorstCase   = input.bool(false, "Use Worst Case Estimates", group="General Settings")
+
+FilterSettings filterSettings = FilterSettings.new(
+    input.bool(title="Use Volatility Filter", defval=true, group="Filters"),
+    input.bool(title="Use Regime Filter", defval=true, group="Filters", inline="regime"),
+    input.bool(title="Use ADX Filter", defval=false, group="Filters", inline="adx"),
+    input.float(title="Threshold", defval=-0.1, minval=-10, maxval=10, step=0.1, group="Filters", inline="regime"),
+    input.int(title="Threshold", defval=20, minval=0, maxval=100, step=1, group="Filters", inline="adx"))
+
+Filter filter = Filter.new(
+    ml.filter_volatility(1, 10, filterSettings.useVolatilityFilter),
+    ml.regime_filter(ohlc4, filterSettings.regimeThreshold, filterSettings.useRegimeFilter),
+    ml.filter_adx(settings.source, 14, filterSettings.adxThreshold, filterSettings.useAdxFilter))
+
+// Feature Variables
+f1_string = input.string(title="Feature 1", options=["RSI", "WT", "CCI", "ADX"], defval="RSI", inline="01", group="Feature Engineering")
+f1_paramA = input.int(title="Parameter A", defval=14, inline="02", group="Feature Engineering")
+f1_paramB = input.int(title="Parameter B", defval=1,  inline="02", group="Feature Engineering")
+f2_string = input.string(title="Feature 2", options=["RSI", "WT", "CCI", "ADX"], defval="WT",  inline="03", group="Feature Engineering")
+f2_paramA = input.int(title="Parameter A", defval=10, inline="04", group="Feature Engineering")
+f2_paramB = input.int(title="Parameter B", defval=11, inline="04", group="Feature Engineering")
+f3_string = input.string(title="Feature 3", options=["RSI", "WT", "CCI", "ADX"], defval="CCI", inline="05", group="Feature Engineering")
+f3_paramA = input.int(title="Parameter A", defval=20, inline="06", group="Feature Engineering")
+f3_paramB = input.int(title="Parameter B", defval=1,  inline="06", group="Feature Engineering")
+f4_string = input.string(title="Feature 4", options=["RSI", "WT", "CCI", "ADX"], defval="ADX", inline="07", group="Feature Engineering")
+f4_paramA = input.int(title="Parameter A", defval=20, inline="08", group="Feature Engineering")
+f4_paramB = input.int(title="Parameter B", defval=2,  inline="08", group="Feature Engineering")
+f5_string = input.string(title="Feature 5", options=["RSI", "WT", "CCI", "ADX"], defval="RSI", inline="09", group="Feature Engineering")
+f5_paramA = input.int(title="Parameter A", defval=9,  inline="10", group="Feature Engineering")
+f5_paramB = input.int(title="Parameter B", defval=1,  inline="10", group="Feature Engineering")
+
+featureSeries = FeatureSeries.new(
+    series_from(f1_string, close, high, low, hlc3, f1_paramA, f1_paramB),
+    series_from(f2_string, close, high, low, hlc3, f2_paramA, f2_paramB),
+    series_from(f3_string, close, high, low, hlc3, f3_paramA, f3_paramB),
+    series_from(f4_string, close, high, low, hlc3, f4_paramA, f4_paramB),
+    series_from(f5_string, close, high, low, hlc3, f5_paramA, f5_paramB))
+
+var f1Array = array.new_float()
+var f2Array = array.new_float()
+var f3Array = array.new_float()
+var f4Array = array.new_float()
+var f5Array = array.new_float()
+array.push(f1Array, featureSeries.f1)
+array.push(f2Array, featureSeries.f2)
+array.push(f3Array, featureSeries.f3)
+array.push(f4Array, featureSeries.f4)
+array.push(f5Array, featureSeries.f5)
+
+featureArrays = FeatureArrays.new(f1Array, f2Array, f3Array, f4Array, f5Array)
+Label direction = Label.new(long=1, short=-1, neutral=0)
+maxBarsBackIndex = last_bar_index >= settings.maxBarsBack ? last_bar_index - settings.maxBarsBack : 0
+
+// Volume Filter Settings
+useVolFilter = input.bool(true, "Use Volume Filter", group="Filters", tooltip="Require volume confirmation at signal bar.")
+volMinRatio  = input.float(0.90, "Min Volume Ratio", minval=0.1, maxval=5.0, step=0.05, group="Filters", tooltip="Signal requires volume >= this multiple of 20-bar average. Crypto: 1.2+, Forex: 0.9+")
+volMaPeriod  = input.int(20, "Volume MA Period", minval=5, maxval=100, group="Filters", tooltip="Lookback period for average volume baseline.")
+
+// EMA/SMA Filters
+useEmaFilter   = input.bool(title="Use EMA Filter", defval=false, group="Filters", inline="ema")
+emaPeriod      = input.int(title="Period", defval=200, minval=1, step=1, group="Filters", inline="ema")
+isEmaUptrend   = useEmaFilter ? close > ta.ema(close, emaPeriod) : true
+isEmaDowntrend = useEmaFilter ? close < ta.ema(close, emaPeriod) : true
+useSmaFilter   = input.bool(title="Use SMA Filter", defval=false, group="Filters", inline="sma")
+smaPeriod      = input.int(title="Period", defval=200, minval=1, step=1, group="Filters", inline="sma")
+isSmaUptrend   = useSmaFilter ? close > ta.sma(close, smaPeriod) : true
+isSmaDowntrend = useSmaFilter ? close < ta.sma(close, smaPeriod) : true
+
+// ============================================
+// ==== Volume Analysis ======================
+// ============================================
+
+volMA      = ta.sma(volume, volMaPeriod)
+volRatio   = volume / (volMA + 1e-10)
+volSlope   = (volMA - volMA[3]) / (volMA[3] + 1e-10)
+volScore   = math.min(volRatio / 2.0, 1.0)
+volStrong  = volRatio >= 1.5
+volNeutral = volRatio >= 0.75 and volRatio < 1.5
+volWeak    = volRatio < 0.75
+volConfirmed = useVolFilter ? volRatio >= volMinRatio : true
+
+// ============================================
+// ==== ATR + Structure Features ==============
+// ============================================
+
+atr         = ta.atr(atrPeriod)
+ema50       = ta.ema(close, 50)
+emaDistance = (close - ema50) / (atr + 1e-10)
+var float atrAtEntry = na
+
+swingHigh = high[2] == ta.highest(high, 5) ? high[2] : na
+swingLow  = low[2]  == ta.lowest(low, 5)   ? low[2]  : na
+
+var float sh1 = na
+var float sh2 = na
+var float sh3 = na
+var float sl1 = na
+var float sl2 = na
+var float sl3 = na
+
+if not na(swingHigh)
+    sh3 := sh2
+    sh2 := sh1
+    sh1 := swingHigh
+
+if not na(swingLow)
+    sl3 := sl2
+    sl2 := sl1
+    sl1 := swingLow
+
+pivotSlopeHigh = (not na(sh1) and not na(sh3)) ? (sh1 - sh3) / (2 * atr + 1e-10) : 0.0
+pivotSlopeLow  = (not na(sl1) and not na(sl3)) ? (sl1 - sl3) / (2 * atr + 1e-10) : 0.0
+
+// Kernel Settings
+useKernelFilter    = input.bool(true, "Trade with Kernel", group="Kernel Settings", inline="kernel")
+showKernelEstimate = input.bool(true, "Show Kernel Estimate", group="Kernel Settings", inline="kernel")
+useKernelSmoothing = input.bool(false, "Enhance Kernel Smoothing", inline='1', group='Kernel Settings')
+h   = input.int(8, 'Lookback Window', minval=3, group="Kernel Settings", inline="kernel")
+r   = input.float(8., 'Relative Weighting', step=0.25, group="Kernel Settings", inline="kernel")
+x   = input.int(25, "Regression Level", group="Kernel Settings", inline="kernel")
+lag = input.int(2, "Lag", inline='1', group='Kernel Settings')
+
+// Display Settings
+showBarColors        = input.bool(true, "Show Bar Colors", group="Display Settings")
+showBarPredictions   = input.bool(defval=true, title="Show Bar Prediction Values", group="Display Settings")
+useAtrOffset         = input.bool(defval=false, title="Use ATR Offset", group="Display Settings")
+barPredictionsOffset = input.float(0, "Bar Prediction Offset", minval=0, group="Display Settings")
+showWickLabels       = input.bool(true, "Show Wick Labels", group="Display Settings")
+showRegimeHints      = input.bool(true, "Show Regime Hints at TP", group="Display Settings")
+
+// =================================
+// ==== Next Bar Classification ====
+// =================================
+
+src            = settings.source
+y_train_series = src[4] < src[0] ? direction.short : src[4] > src[0] ? direction.long : direction.neutral
+var y_train_array = array.new_int(0)
+var predictions   = array.new_float(0)
+var prediction    = 0.
+var signal        = direction.neutral
+var distances     = array.new_float(0)
+
+array.push(y_train_array, y_train_series)
+
+// =========================
+// ====  Core ML Logic  ====
+// =========================
+
+lastDistance = -1.0
+size         = math.min(settings.maxBarsBack - 1, array.size(y_train_array) - 1)
+sizeLoop     = math.min(settings.maxBarsBack - 1, size)
+
+if bar_index >= maxBarsBackIndex
+    for i = 0 to sizeLoop
+        d = get_lorentzian_distance(i, settings.featureCount, featureSeries, featureArrays)
+        if d >= lastDistance and i % 4 != 0
+            lastDistance := d
+            array.push(distances, d)
+            array.push(predictions, math.round(array.get(y_train_array, i)))
+            if array.size(predictions) > settings.neighborsCount
+                lastDistance := array.get(distances, math.round(settings.neighborsCount * 3 / 4))
+                array.shift(distances)
+                array.shift(predictions)
+    prediction := array.sum(predictions)
+
+// ============================
+// ==== Prediction Filters ====
+// ============================
+
+filter_all = filter.volatility and filter.regime and filter.adx
+signal     := prediction > 0 and filter_all ? direction.long : prediction < 0 and filter_all ? direction.short : nz(signal[1])
+
+var int barsHeld = 0
+signalChanged         = ta.change(signal) != 0
+barsHeld              := signalChanged ? 0 : barsHeld + 1
+isDifferentSignalType  = signalChanged
+isEarlySignalFlip      = signalChanged and (ta.change(signal[1]) != 0 or ta.change(signal[2]) != 0 or ta.change(signal[3]) != 0)
+isBuySignal            = signal == direction.long  and isEmaUptrend  and isSmaUptrend
+isSellSignal           = signal == direction.short and isEmaDowntrend and isSmaDowntrend
+isLastSignalBuy        = signal[4] == direction.long  and isEmaUptrend[4]  and isSmaUptrend[4]
+isLastSignalSell       = signal[4] == direction.short and isEmaDowntrend[4] and isSmaDowntrend[4]
+isNewBuySignal         = isBuySignal  and isDifferentSignalType
+isNewSellSignal        = isSellSignal and isDifferentSignalType
+
+// Kernel Regression
+c_green     = color.new(#009988, 20)
+c_red       = color.new(#CC3311, 20)
+transparent = color.new(#000000, 100)
+yhat1          = kernels.rationalQuadratic(settings.source, h, r, x)
+yhat2          = kernels.gaussian(settings.source, h - lag, x)
+kernelEstimate = yhat1
+
+bool wasBearishRate      = yhat1[2] > yhat1[1]
+bool wasBullishRate      = yhat1[2] < yhat1[1]
+bool isBearishRate       = yhat1[1] > yhat1
+bool isBullishRate       = yhat1[1] < yhat1
+isBearishChange          = isBearishRate and wasBullishRate
+isBullishChange          = isBullishRate and wasBearishRate
+bool isBullishCrossAlert = ta.crossover(yhat2, yhat1)
+bool isBearishCrossAlert = ta.crossunder(yhat2, yhat1)
+bool isBullishSmooth     = yhat2 >= yhat1
+bool isBearishSmooth     = yhat2 <= yhat1
+
+color colorByCross = isBullishSmooth ? c_green : c_red
+color colorByRate  = isBullishRate   ? c_green : c_red
+color plotColor    = showKernelEstimate ? (useKernelSmoothing ? colorByCross : colorByRate) : transparent
+plot(kernelEstimate, color=plotColor, linewidth=2, title="Kernel Regression Estimate")
+
+bool alertBullish = useKernelSmoothing ? isBullishCrossAlert : isBullishChange
+bool alertBearish = useKernelSmoothing ? isBearishCrossAlert : isBearishChange
+isBullish         = useKernelFilter ? (useKernelSmoothing ? isBullishSmooth : isBullishRate) : true
+isBearish         = useKernelFilter ? (useKernelSmoothing ? isBearishSmooth : isBearishRate) : true
+
+// ===========================
+// ==== Entries and Exits ====
+// ===========================
+
+startLongTrade  = isNewBuySignal  and isBullish and isEmaUptrend  and isSmaUptrend  and volConfirmed
+startShortTrade = isNewSellSignal and isBearish and isEmaDowntrend and isSmaDowntrend and volConfirmed
+
+// ============================================
+// ==== ATR-Based TP/SL =======================
+// ============================================
+
+var float entryPrice  = na
+var float tpLevel     = na
+var float slLevel     = na
+var float atrAtSignal = na
+var bool inLongTrade  = false
+var bool inShortTrade = false
+var bool tpHitLong    = false
+var bool tpHitShort   = false
+var bool slHitLong    = false
+var bool slHitShort   = false
+var bool partialClosed = false
+
+if startLongTrade
+    entryPrice    := close
+    atrAtSignal   := atr
+    atrAtEntry    := atr
+    tpLevel       := close + atr * tpAtrMult
+    slLevel       := close - atr * slAtrMult
+    inLongTrade   := true
+    inShortTrade  := false
+    partialClosed := false
+    tpHitLong     := false
+    slHitLong     := false
+
+if startShortTrade
+    entryPrice    := close
+    atrAtSignal   := atr
+    atrAtEntry    := atr
+    tpLevel       := close - atr * tpAtrMult
+    slLevel       := close + atr * slAtrMult
+    inShortTrade  := true
+    inLongTrade   := false
+    partialClosed := false
+    tpHitShort    := false
+    slHitShort    := false
+
+tpHitLong  := inLongTrade  and not partialClosed and high >= tpLevel
+tpHitShort := inShortTrade and not partialClosed and low  <= tpLevel
+slHitLong  := inLongTrade  and low  <= slLevel
+slHitShort := inShortTrade and high >= slLevel
+
+if tpHitLong or tpHitShort
+    partialClosed := true
+
+barsSinceRedEntry   = ta.barssince(startShortTrade)
+barsSinceRedExit    = ta.barssince(alertBullish)
+barsSinceGreenEntry = ta.barssince(startLongTrade)
+barsSinceGreenExit  = ta.barssince(alertBearish)
+isValidShortExit    = barsSinceRedExit   > barsSinceRedEntry
+isValidLongExit     = barsSinceGreenExit > barsSinceGreenEntry
+
+endLongRunner  = partialClosed and inLongTrade  and isBearishChange and isValidLongExit[1]
+endShortRunner = partialClosed and inShortTrade and isBullishChange and isValidShortExit[1]
+endLongSL      = inLongTrade  and slHitLong
+endShortSL     = inShortTrade and slHitShort
+endLongOnFlip  = inLongTrade  and partialClosed and startShortTrade
+endShortOnFlip = inShortTrade and partialClosed and startLongTrade
+endLongTrade   = endLongRunner  or endLongSL  or endLongOnFlip
+endShortTrade  = endShortRunner or endShortSL or endShortOnFlip
+
+if endLongTrade
+    inLongTrade   := false
+    partialClosed := false
+    entryPrice    := na
+    tpLevel       := na
+    slLevel       := na
+
+if endShortTrade
+    inShortTrade  := false
+    partialClosed := false
+    entryPrice    := na
+    tpLevel       := na
+    slLevel       := na
+
+// ============================================
+// ==== Candlestick Detection =================
+// ============================================
+
+bodySize       = math.abs(close - open)
+upperWick      = high - math.max(open, close)
+lowerWick      = math.min(open, close) - low
+totalRange     = high - low + 1e-10
+upperWickRatio = upperWick / totalRange
+lowerWickRatio = lowerWick / totalRange
+bodyRatio      = bodySize  / totalRange
+
+isShootingStar  = upperWickRatio > 0.60 and bodyRatio < 0.25
+isHammer        = lowerWickRatio > 0.60 and bodyRatio < 0.25
+isBearishEngulf = close < open and close < low[1]  and open > high[1] and bodyRatio > 0.60
+isBullishEngulf = close > open and close > high[1] and open < low[1]  and bodyRatio > 0.60
+isDoji          = bodyRatio < 0.10 and upperWickRatio > 0.30 and lowerWickRatio > 0.30
+
+tpProgShort  = inShortTrade and not na(entryPrice) and not na(tpLevel) ? math.max(0, (entryPrice - low)  / (math.abs(entryPrice - tpLevel) + 1e-10)) : 0.0
+tpProgLong   = inLongTrade  and not na(entryPrice) and not na(tpLevel) ? math.max(0, (high - entryPrice) / (math.abs(tpLevel - entryPrice) + 1e-10)) : 0.0
+tpProgress   = inShortTrade ? tpProgShort : tpProgLong
+
+kernelDangerShort = inShortTrade and isBullishChange
+kernelDangerLong  = inLongTrade  and isBearishChange
+protectShort      = inShortTrade and not partialClosed and isHammer       and kernelDangerShort and tpProgress >= 0.65
+protectLong       = inLongTrade  and not partialClosed and isShootingStar and kernelDangerLong  and tpProgress >= 0.65
+atrRatioLive      = not na(atrAtEntry) ? atr / (atrAtEntry + 1e-10) : 1.0
+atrRatioAtTP      = atr / (atrAtSignal + 1e-10)
+
+// =========================
+// ==== Plotting Labels ====
+// =========================
+
+plotshape(startLongTrade  ? low  : na, 'Buy',      shape.labelup,   location.belowbar, color=ml.color_green(prediction), size=size.small, offset=0)
+plotshape(startShortTrade ? high : na, 'Sell',     shape.labeldown, location.abovebar, ml.color_red(-prediction),        size=size.small, offset=0)
+plotshape(tpHitLong  ? high : na, 'TP Long',  shape.circle, location.abovebar, color=color.new(#00FF00, 0), size=size.tiny, offset=0)
+plotshape(tpHitShort ? low  : na, 'TP Short', shape.circle, location.belowbar, color=color.new(#00FF00, 0), size=size.tiny, offset=0)
+plotshape(slHitLong  ? low  : na, 'SL Long',  shape.xcross, location.belowbar, color=color.new(#FF0000, 0), size=size.tiny, offset=0)
+plotshape(slHitShort ? high : na, 'SL Short', shape.xcross, location.abovebar, color=color.new(#FF0000, 0), size=size.tiny, offset=0)
+plotshape(endLongTrade  and settings.showExits ? high : na, 'StopBuy',  shape.xcross, location.absolute, color=#3AFF17, size=size.tiny, offset=0)
+plotshape(endShortTrade and settings.showExits ? low  : na, 'StopSell', shape.xcross, location.absolute, color=#FD1707, size=size.tiny, offset=0)
+
+// Volume label at signal bars
+if showWickLabels and (startLongTrade or startShortTrade)
+    volTag      = volStrong ? "V+" : volWeak ? "V-" : "V~"
+    volTagColor = volStrong ? color.new(color.green, 0) : volWeak ? color.new(color.red, 0) : color.new(color.gray, 0)
+    label.new(bar_index, startShortTrade ? high + atr * 0.8 : low - atr * 0.8, volTag, xloc.bar_index, yloc.price, color.new(color.white, 100), startShortTrade ? label.style_label_down : label.style_label_up, volTagColor, size.small)
+
+plot(inLongTrade  or inShortTrade ? tpLevel : na, "TP Level", color=color.new(color.green, 40), style=plot.style_linebr, linewidth=1)
+plot(inLongTrade  or inShortTrade ? slLevel : na, "SL Level", color=color.new(color.red,   40), style=plot.style_linebr, linewidth=1)
+
+// ====================================
+// ==== Wick State Labels =============
+// ====================================
+
+if showWickLabels
+    if isHammer
+        label.new(bar_index, low - atr * 0.4, "Hammer", xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_up, color.new(color.green, 0), size.small)
+    if isShootingStar
+        label.new(bar_index, high + atr * 0.4, "Shoot Star", xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_down, color.new(color.red, 0), size.small)
+    if isBearishEngulf and not isShootingStar
+        label.new(bar_index, high + atr * 0.4, "Bear Engulf", xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_down, color.new(#CC3311, 0), size.small)
+    if isBullishEngulf and not isHammer
+        label.new(bar_index, low - atr * 0.4, "Bull Engulf", xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_up, color.new(#009988, 0), size.small)
+    if isDoji and not isHammer and not isShootingStar
+        label.new(bar_index, high + atr * 0.4, "Doji", xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_down, color.new(color.gray, 0), size.small)
+
+// =============================================
+// ==== Regime Hint Labels (at TP hit bars) ====
+// =============================================
+
+if showRegimeHints and (tpHitShort or tpHitLong)
+    slopeVal  = tpHitShort ? pivotSlopeHigh : pivotSlopeLow
+    slopeHint = slopeVal < -0.20 ? "Slope: LH/LL" : slopeVal > 0.20 ? "Slope: HH/HL" : "Slope: FLAT"
+    atrHint   = atrRatioLive < 0.75 ? "ATR: Contract" : atrRatioLive > 1.10 ? "ATR: Expand" : "ATR: Stable"
+    rsiNow    = featureSeries.f1
+    adxNow    = featureSeries.f4
+    momoHint  = tpHitShort ? (rsiNow < 40 ? "Mom: Strong Dn" : rsiNow > 55 ? "Mom: Fading" : "Mom: Neutral") : (rsiNow > 60 ? "Mom: Strong Up" : rsiNow < 45 ? "Mom: Fading" : "Mom: Neutral")
+    adxHint   = adxNow > 25 ? "ADX: Strong" : adxNow > 20 ? "ADX: Moderate" : "ADX: Weak"
+    kHint     = tpHitShort ? (isBearishRate ? "Kernel: Bear OK" : "Kernel: Turning!") : (isBullishRate ? "Kernel: Bull OK" : "Kernel: Turning!")
+    regime    = (tpHitShort and slopeVal < -0.10 and atrRatioLive >= 0.85 and rsiNow < 50 and adxNow > 20) ? "CONTINUATION" : (tpHitLong and slopeVal > 0.10 and atrRatioLive >= 0.85 and rsiNow > 50 and adxNow > 20) ? "CONTINUATION" : (tpHitShort and slopeVal > 0.10 and not isBearishRate) ? "REVERSAL" : (tpHitLong and slopeVal < -0.10 and not isBullishRate) ? "REVERSAL" : atrRatioLive < 0.75 ? "CONSOLIDATION" : "MIXED"
+    rColor    = regime == "CONTINUATION" ? color.new(#009988, 10) : regime == "REVERSAL" ? color.new(#CC3311, 10) : regime == "CONSOLIDATION" ? color.new(color.orange, 10) : color.new(color.gray, 10)
+    rText     = regime + "\n" + slopeHint + "\n" + atrHint + "\n" + momoHint + "\n" + adxHint + "\n" + kHint
+    label.new(bar_index, tpHitShort ? low - atr * 1.2 : high + atr * 1.2, rText, xloc.bar_index, yloc.price, rColor, tpHitShort ? label.style_label_up : label.style_label_down, color.white, size.small)
+
+// ================
+// ==== Alerts ====
+// ================
+
+f2s(float v) => str.tostring(math.round(v, 5))
+
+longCloseReason  = endLongSL  ? "sl_hit" : endLongOnFlip  ? "signal_flip" : "runner_exit"
+shortCloseReason = endShortSL ? "sl_hit" : endShortOnFlip ? "signal_flip" : "runner_exit"
+
+longOpenMsg   = '{"event":"signal","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"entry":' + f2s(close) + ',"tp":' + f2s(close + atr * tpAtrMult) + ',"sl":' + f2s(close - atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"prediction":' + str.tostring(math.round(prediction)) + ',"ema_distance":' + f2s(emaDistance) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + '}'
+shortOpenMsg  = '{"event":"signal","direction":"short","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"entry":' + f2s(close) + ',"tp":' + f2s(close - atr * tpAtrMult) + ',"sl":' + f2s(close + atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"prediction":' + str.tostring(math.round(prediction)) + ',"ema_distance":' + f2s(emaDistance) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + '}'
+tpHitLongMsg  = '{"event":"tp_hit","direction":"long","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"tp_price":' + f2s(tpLevel) + ',"entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
+tpHitShortMsg = '{"event":"tp_hit","direction":"short","pair":"'  + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"tp_price":' + f2s(tpLevel) + ',"entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
+closeLongMsg  = '{"event":"close","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"close_price":' + f2s(close) + ',"reason":"' + longCloseReason  + '"}'
+closeShortMsg = '{"event":"close","direction":"short","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"close_price":' + f2s(close) + ',"reason":"' + shortCloseReason + '"}'
+
+if startLongTrade
+    alert(longOpenMsg,   alert.freq_once_per_bar)
+if startShortTrade
+    alert(shortOpenMsg,  alert.freq_once_per_bar)
+if tpHitLong
+    alert(tpHitLongMsg,  alert.freq_once_per_bar)
+if tpHitShort
+    alert(tpHitShortMsg, alert.freq_once_per_bar)
+if endLongTrade
+    alert(closeLongMsg,  alert.freq_once_per_bar)
+if endShortTrade
+    alert(closeShortMsg, alert.freq_once_per_bar)
+if alertBullish
+    alert('{"event":"kernel_bullish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
+if alertBearish
+    alert('{"event":"kernel_bearish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
+
+// =========================
+// ==== Display Signals ====
+// =========================
+
+atrSpaced         = useAtrOffset ? ta.atr(1) : na
+compressionFactor = settings.neighborsCount / settings.colorCompression
+c_pred  = prediction > 0 ? color.from_gradient(prediction, 0, compressionFactor, #787b86, #009988) : prediction <= 0 ? color.from_gradient(prediction, -compressionFactor, 0, #CC3311, #787b86) : na
+c_label = showBarPredictions ? c_pred : na
+x_val   = bar_index
+y_val   = useAtrOffset ? (prediction > 0 ? high + atrSpaced : low - atrSpaced) : (prediction > 0 ? high + hl2 * barPredictionsOffset / 20 : low - hl2 * barPredictionsOffset / 30)
+label.new(x_val, y_val, str.tostring(prediction), xloc.bar_index, yloc.price, color.new(color.white, 100), label.style_label_up, c_label, size.normal, text.align_left)
+barcolor(showBarColors ? color.new(c_pred, 50) : na)
+
+// =====================
+// ==== Backtesting ====
+// =====================
+
+signalStream = switch
+    startLongTrade  =>  1
+    startShortTrade => -1
+    => 0
+plot(signalStream, "Signal Stream", display=display.data_window)
+
+exitStream = switch
+    endLongTrade  =>  2
+    endShortTrade => -2
+    tpHitLong     =>  3
+    tpHitShort    => -3
+    slHitLong     =>  4
+    slHitShort    => -4
+    => 0
+plot(exitStream, "Exit Stream", display=display.data_window)
+
+plot(featureSeries.f1,     "F1 RSI14",         display=display.data_window)
+plot(featureSeries.f2,     "F2 WT",            display=display.data_window)
+plot(featureSeries.f3,     "F3 CCI",           display=display.data_window)
+plot(featureSeries.f4,     "F4 ADX",           display=display.data_window)
+plot(featureSeries.f5,     "F5 RSI9",          display=display.data_window)
+plot(prediction,           "Prediction",       display=display.data_window)
+plot(atr,                  "ATR",              display=display.data_window)
+plot(tpLevel,              "TP Level",         display=display.data_window)
+plot(slLevel,              "SL Level",         display=display.data_window)
+plot(tpAtrMult,            "TP Mult Active",   display=display.data_window)
+plot(slAtrMult,            "SL Mult Active",   display=display.data_window)
+plot(emaDistance,          "EMA Distance",     display=display.data_window)
+plot(pivotSlopeHigh,       "Pivot Slope H",    display=display.data_window)
+plot(pivotSlopeLow,        "Pivot Slope L",    display=display.data_window)
+plot(upperWickRatio,       "Upper Wick Ratio", display=display.data_window)
+plot(lowerWickRatio,       "Lower Wick Ratio", display=display.data_window)
+plot(tpProgress,           "TP Progress",      display=display.data_window)
+plot(protectShort ? 1 : 0, "Protect Short",    display=display.data_window)
+plot(protectLong  ? 1 : 0, "Protect Long",     display=display.data_window)
+plot(atrRatioLive,         "ATR Ratio",        display=display.data_window)
+plot(volRatio,             "Vol Ratio",        display=display.data_window)
+plot(volScore,             "Vol Score",        display=display.data_window)
+plot(volSlope,             "Vol Slope",        display=display.data_window)
+plot(volStrong  ? 1 : 0,  "Vol Strong",       display=display.data_window)
+plot(volWeak    ? 1 : 0,  "Vol Weak",         display=display.data_window)
+
+[totalWins, totalLosses, totalEarlySignalFlips, totalTrades, tradeStatsHeader, winLossRatio, winRate] = ml.backtest(high, low, open, startLongTrade, endLongTrade, startShortTrade, endShortTrade, isEarlySignalFlip, maxBarsBackIndex, bar_index, settings.source, useWorstCase)
+
+init_table() =>
+    c_t = color.new(color.black, 100)
+    table.new(position.top_right, columns=2, rows=7, frame_color=c_t, frame_width=1, border_width=1, border_color=c_t)
+
+update_table(tbl, tradeStatsHeader, totalTrades, totalWins, totalLosses, winLossRatio, winRate, stopLosses) =>
+    c_t = color.new(color.black, 100)
+    table.cell(tbl, 0, 0, tradeStatsHeader, text_halign=text.align_center, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 0, 1, "Winrate", text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 1, 1, str.tostring(totalWins / totalTrades, "#.#%"), text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 0, 2, "Trades", text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 1, 2, str.tostring(totalTrades, "#") + " (" + str.tostring(totalWins, "#") + "|" + str.tostring(totalLosses, "#") + ")", text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 0, 5, "WL Ratio", text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 1, 5, str.tostring(totalWins / totalLosses, "0.00"), text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 0, 6, "Early Signal Flips", text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+    table.cell(tbl, 1, 6, str.tostring(totalEarlySignalFlips, "#"), text_halign=text.align_center, bgcolor=c_t, text_color=color.gray, text_size=size.normal)
+
+if showTradeStats
+    var tbl = ml.init_table()
+    if barstate.islast
+        update_table(tbl, tradeStatsHeader, totalTrades, totalWins, totalLosses, winLossRatio, winRate, totalEarlySignalFlips)
