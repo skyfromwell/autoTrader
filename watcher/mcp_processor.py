@@ -75,11 +75,13 @@ EXIT_MAP   = {
     -4: "sl_hit_short",
 }
 
-# Entry confirmation thresholds — tightened after consecutive SL hits
+# Entry confirmation thresholds — tightened after consecutive SL hits.
+# F4 ADX is Lorentzian-normalized to 0-1 (ml.n_adx), not raw 0-100.
+# ATR Ratio is a raw ratio (current ATR / avg ATR), not normalized.
 ENTRY_RULES = {
-    "normal":   {"min_prediction": 2, "min_adx": 15, "min_atr_ratio": 0.80},
-    "cautious": {"min_prediction": 4, "min_adx": 20, "min_atr_ratio": 0.90},
-    "strict":   {"min_prediction": 6, "min_adx": 25, "min_atr_ratio": 1.00},
+    "normal":   {"min_prediction": 2, "min_adx": 0.20, "min_atr_ratio": 0.80},
+    "cautious": {"min_prediction": 4, "min_adx": 0.30, "min_atr_ratio": 0.90},
+    "strict":   {"min_prediction": 6, "min_adx": 0.40, "min_atr_ratio": 1.00},
 }
 
 
@@ -295,10 +297,10 @@ def _whipsaw_score(pair: str, raw: dict, history: list, sl_streak: int) -> dict:
     elif recent_sl >= 2: score += 20; reasons.append(f"{recent_sl} recent SL hits")
     elif recent_sl >= 1: score += 10; reasons.append(f"{recent_sl} recent SL hit")
 
-    adx = _safe_float(raw.get("F4 ADX", 25))
-    if   adx < 15: score += 25; reasons.append(f"ADX very weak ({adx:.1f})")
-    elif adx < 20: score += 15; reasons.append(f"ADX weak ({adx:.1f})")
-    elif adx < 25: score += 5;  reasons.append(f"ADX moderate ({adx:.1f})")
+    adx = _safe_float(raw.get("F4 ADX", 0.25))   # normalized 0-1
+    if   adx < 0.15: score += 25; reasons.append(f"ADX very weak ({adx:.2f})")
+    elif adx < 0.20: score += 15; reasons.append(f"ADX weak ({adx:.2f})")
+    elif adx < 0.25: score += 5;  reasons.append(f"ADX moderate ({adx:.2f})")
 
     atr_ratio = _safe_float(raw.get("ATR Ratio", 1.0))
     if   atr_ratio < 0.70: score += 15; reasons.append(f"ATR contracting ({atr_ratio:.2f})")
@@ -381,7 +383,7 @@ def _infer_kernel_dir(features: dict, direction: str) -> bool:
 
 def _safe_float(val) -> float:
     try:
-        f = float(val)
+        f = float(str(val).replace("−", "-"))  # normalize Unicode minus
         return 0.0 if f != f else f
     except (TypeError, ValueError):
         return 0.0
