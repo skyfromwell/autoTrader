@@ -27,12 +27,16 @@ classifier = RegimeClassifier()
 manager    = PositionManager()
 
 # Exchange prefix → broker / asset-class routing
-_CRYPTO_PREFIXES = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
-_FOREX_PREFIXES  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+_CRYPTO_PREFIXES  = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
+_FOREX_PREFIXES   = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+_CHINESE_PREFIXES = {"SSE", "SZSE", "HKEX", "SHSE"}   # no broker yet
 
 def _broker_execute(pair: str, direction: str, price: float | None = None) -> None:
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    if prefix in _CHINESE_PREFIXES:
+        log.info(f"[{pair}] SIGNAL logged — no Chinese broker configured, skipping execution")
+        return
     if prefix in _CRYPTO_PREFIXES:
         hl_execute(pair, direction, price=price)
     elif prefix in _FOREX_PREFIXES:

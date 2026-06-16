@@ -260,14 +260,25 @@ def _screen_one(raw: str, market_cfg: dict, cfg: dict, bench_ret: float, log) ->
                  "market": market_cfg["short"]}
 
     try:
-        info = yf.Ticker(full).info
+        import signal as _signal
+        def _timeout_handler(signum, frame): raise TimeoutError(f"{full}: yfinance fetch timed out")
+        _signal.signal(_signal.SIGALRM, _timeout_handler)
+        _signal.alarm(45)
+        try:
+            info = yf.Ticker(full).info
+        finally:
+            _signal.alarm(0)
 
         trading_days_needed = max(cfg["ma_long"], cfg["rs_period"]) + 20
         lookback = int(trading_days_needed * 1.45) + 30
-        hist = yf.download(full,
-                           start=datetime.now() - timedelta(days=lookback),
-                           end=datetime.now(),
-                           progress=False, auto_adjust=True)
+        _signal.alarm(45)
+        try:
+            hist = yf.download(full,
+                               start=datetime.now() - timedelta(days=lookback),
+                               end=datetime.now(),
+                               progress=False, auto_adjust=True)
+        finally:
+            _signal.alarm(0)
 
         if hist.empty or len(hist) < cfg["ma_long"] + 5:
             log.debug(f"{full}: insufficient history ({len(hist)} bars)")
