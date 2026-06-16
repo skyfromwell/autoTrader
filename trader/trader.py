@@ -18,7 +18,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 ALPACA_API_KEY    = os.getenv("ALPACA_API_KEY", "")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY", "")
 
-TRADE_NOTIONAL    = 1_000     # USD per position
+TRADE_NOTIONAL    = 10_000    # USD default (A-grade=20K, B-grade=10K)
 MAX_POSITIONS     = 10
 STOP_LOSS_PCT     = 5.0
 TAKE_PROFIT_PCT   = 15.0
@@ -101,16 +101,18 @@ def _log_trade(tv_symbol: str, direction: str, notional: float,
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-def execute_trade(tv_symbol: str, direction: str, price: float | None = None) -> bool:
+def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
+                  notional: int = TRADE_NOTIONAL) -> bool:
     """
     Place a paper trade on Alpaca for the given TradingView symbol and direction.
     direction: 'long' | 'short'
+    notional: USD position size (A-grade=20K, B-grade=10K)
     Returns True if order was placed successfully.
     """
     OUTPUT_DIR.mkdir(exist_ok=True)
     symbol = _alpaca_symbol(tv_symbol)
 
-    log.info(f"TRADE  {tv_symbol} ({symbol})  {direction.upper()}  price≈{price}")
+    log.info(f"TRADE  {tv_symbol} ({symbol})  {direction.upper()}  price≈{price}  ${notional:,}")
 
     try:
         client = _get_client()
@@ -131,9 +133,9 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None) ->
         log.info(f"  Closing existing position before flip: {symbol}")
         _close_position(client, symbol)
 
-    success = _place_order(client, symbol, direction, TRADE_NOTIONAL)
+    success = _place_order(client, symbol, direction, notional)
     status  = "PLACED" if success else "FAILED"
-    _log_trade(tv_symbol, direction, TRADE_NOTIONAL, status)
+    _log_trade(tv_symbol, direction, notional, status)
     return success
 
 

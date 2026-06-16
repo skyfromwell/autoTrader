@@ -10,6 +10,8 @@ Processes Jingda indicator plot values and manages trade lifecycle:
 Broker execution wired to Alpaca via trader.execute_trade().
 """
 
+import csv
+import glob
 import logging
 import sys
 from pathlib import Path
@@ -26,23 +28,50 @@ log        = logging.getLogger(__name__)
 classifier = RegimeClassifier()
 manager    = PositionManager()
 
+_NOTIONAL_BY_GRADE = {"A": 20_000, "B": 10_000}
+_NOTIONAL_DEFAULT  = 10_000
+
+
+def _grade_for(tv_symbol: str) -> str:
+    """Look up the most recent screener grade for a tv_symbol (e.g. 'NYSE:CAT')."""
+    output = Path(__file__).parent.parent / "output"
+    csvs = sorted(glob.glob(str(output / "results_*.csv")), reverse=True)
+    for path in csvs:
+        try:
+            with open(path, newline="") as f:
+                for row in csv.DictReader(f):
+                    if row.get("tv_symbol") == tv_symbol:
+                        return row.get("grade", "B")
+        except Exception:
+            continue
+    return "B"
+
+
+def _notional_for(tv_symbol: str, size: float) -> int:
+    grade    = _grade_for(tv_symbol)
+    base     = _NOTIONAL_BY_GRADE.get(grade, _NOTIONAL_DEFAULT)
+    notional = int(base * size)
+    log.info(f"[{tv_symbol}] grade={grade}  base=${base:,}  size={size}  notional=${notional:,}")
+    return notional
+
 # Exchange prefix → broker / asset-class routing
 _CRYPTO_PREFIXES  = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
 _FOREX_PREFIXES   = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 _CHINESE_PREFIXES = {"SSE", "SZSE", "HKEX", "SHSE"}   # no broker yet
 
-def _broker_execute(pair: str, direction: str, price: float | None = None) -> None:
+def _broker_execute(pair: str, direction: str, price: float | None = None,
+                    notional: int = _NOTIONAL_DEFAULT) -> None:
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if prefix in _CHINESE_PREFIXES:
         log.info(f"[{pair}] SIGNAL logged — no Chinese broker configured, skipping execution")
         return
     if prefix in _CRYPTO_PREFIXES:
-        hl_execute(pair, direction, price=price)
+        hl_execute(pair, direction, price=price, notional=notional)
     elif prefix in _FOREX_PREFIXES:
-        oanda_execute(pair, direction, price=price)
+        oanda_execute(pair, direction, price=price, notional=notional)
     else:
-        alpaca_execute(pair, direction, price=price)
+        alpaca_execute(pair, direction, price=price, notional=notional)
 
 # ─── Signal / Exit Maps ───────────────────────────────────────────────────────
 
@@ -174,15 +203,17 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     tp = _safe_float(raw.get("TP Level"))
     sl = _safe_float(raw.get("SL Level"))
 
+    notional = _notional_for(pair, size)
+
     log.info(f"[{pair}] ✅ NEW {direction.upper()} | "
              f"entry={entry:.5f} tp={tp:.5f} sl={sl:.5f} "
-             f"atr={atr:.5f} pred={pred:.0f} size={size} rules={rule_level}")
+             f"atr={atr:.5f} pred={pred:.0f} size={size} notional=${notional:,} rules={rule_level}")
 
     manager.open_trade(pair=pair, direction=direction, entry=entry,
                        tp=tp, sl=sl, atr=atr, size=size,
                        features=features, bar_time=raw.get("bar_time"))
 
-    _broker_execute(pair, direction, price=entry if entry else None)
+    _broker_execute(pair, direction, price=entry if entry else None, notional=notional)
 
 
 # ─── Exit Handler ─────────────────────────────────────────────────────────────

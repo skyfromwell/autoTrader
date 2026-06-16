@@ -10,9 +10,10 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def execute_trade(tv_symbol: str, direction: str, price: float | None = None) -> None:
+def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
+                  notional: int = 10_000) -> None:
     """Open or close a crypto position via Hyperliquid. TODO: implement."""
-    log.info(f"[HYPERLIQUID-STUB] {tv_symbol} {direction.upper()} @ {price}")
+    log.info(f"[HYPERLIQUID-STUB] {tv_symbol} {direction.upper()} @ {price}  ${notional:,}")
     # TODO: import hyperliquid SDK and submit order
     # from hyperliquid.exchange import Exchange
     # ...

@@ -10,9 +10,10 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def execute_trade(tv_symbol: str, direction: str, price: float | None = None) -> None:
+def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
+                  notional: int = 10_000) -> None:
     """Open or close a forex position via Oanda. TODO: implement."""
-    log.info(f"[OANDA-STUB] {tv_symbol} {direction.upper()} @ {price}")
+    log.info(f"[OANDA-STUB] {tv_symbol} {direction.upper()} @ {price}  ${notional:,}")
     # TODO: import oandapyV20 and submit order
     # from oandapyV20 import API
     # from oandapyV20.endpoints.orders import OrderCreate
