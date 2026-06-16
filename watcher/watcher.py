@@ -148,7 +148,7 @@ def _seconds_until_next_4h() -> int:
 
 def _tv_cli(*args, timeout: int = 30) -> dict:
     result = subprocess.run(
-        ["node", str(TV_CLI), *args],
+        [os.environ.get("NODE_BIN", "node"), str(TV_CLI), *args],
         cwd=str(TV_MCP_DIR),
         capture_output=True, text=True, timeout=timeout,
     )
