@@ -533,7 +533,6 @@ signalStream = switch
     startLongTrade  =>  1
     startShortTrade => -1
     => 0
-plot(signalStream, "Signal Stream", display=display.data_window)
 
 exitStream = switch
     endLongTrade  =>  2
@@ -543,7 +542,13 @@ exitStream = switch
     slHitLong     =>  4
     slHitShort    => -4
     => 0
-plot(exitStream, "Exit Stream", display=display.data_window)
+
+// Carry previous bar's value so the watcher can read it one bar after the event fires
+signalExport = signalStream != 0 ? signalStream : signalStream[1]
+exitExport   = exitStream   != 0 ? exitStream   : exitStream[1]
+
+plot(signalExport, "Signal Stream", display=display.data_window)
+plot(exitExport,   "Exit Stream",   display=display.data_window)
 
 plot(featureSeries.f1,     "F1 RSI14",         display=display.data_window)
 plot(featureSeries.f2,     "F2 WT",            display=display.data_window)
