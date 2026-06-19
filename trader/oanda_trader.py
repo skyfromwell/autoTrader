@@ -27,6 +27,8 @@ _TV_TO_OANDA: dict[str, str] = {
     "OANDA:EURUSD": "EUR_USD",
     "OANDA:GBPUSD": "GBP_USD",
     "OANDA:USDJPY": "USD_JPY",
+    "OANDA:AUDUSD": "AUD_USD",
+    "OANDA:NZDUSD": "NZD_USD",
 }
 
 

@@ -272,7 +272,10 @@ var int barsHeld = 0
 signalChanged         = ta.change(signal) != 0
 barsHeld              := signalChanged ? 0 : barsHeld + 1
 isDifferentSignalType  = signalChanged
-isEarlySignalFlip      = signalChanged and (ta.change(signal[1]) != 0 or ta.change(signal[2]) != 0 or ta.change(signal[3]) != 0)
+_chg1 = ta.change(signal[1])
+_chg2 = ta.change(signal[2])
+_chg3 = ta.change(signal[3])
+isEarlySignalFlip      = signalChanged and (_chg1 != 0 or _chg2 != 0 or _chg3 != 0)
 isBuySignal            = signal == direction.long  and isEmaUptrend  and isSmaUptrend
 isSellSignal           = signal == direction.short and isEmaDowntrend and isSmaDowntrend
 isLastSignalBuy        = signal[4] == direction.long  and isEmaUptrend[4]  and isSmaUptrend[4]

@@ -295,7 +295,7 @@ def run_watcher():
             except Exception as e:
                 log.error(f"{tv_symbol}: unexpected error — {e}")
 
-        secs = min(_seconds_until_next_4h(), _seconds_until_any_open(symbols))
+        secs = _seconds_until_next_4h()
         mins = secs // 60
         log.info(f"Next check in {mins} min  ({_pacific_now().strftime('%H:%M PT')} now)")
         time.sleep(secs)
