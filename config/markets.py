@@ -91,6 +91,7 @@ MARKETS = {
         "close_time": "15:00",
         "tv_prefix":  "SSE",
         "category":   "non-us",
+        "filter_overrides": {"ma_short": 10, "ma_long": 21},
     },
     "szse": {
         "name":       "Shenzhen Stock Exchange",
@@ -102,6 +103,7 @@ MARKETS = {
         "close_time": "15:00",
         "tv_prefix":  "SZSE",
         "category":   "non-us",
+        "filter_overrides": {"ma_short": 10, "ma_long": 21},
     },
     "nasdaq": {
         "name":       "NASDAQ",
