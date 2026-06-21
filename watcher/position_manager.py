@@ -73,13 +73,23 @@ class PositionManager:
             if STATE_FILE.exists():
                 data = json.loads(STATE_FILE.read_text())
                 self._sl_streaks = data.get("sl_streaks", {})
+                for pair, td in data.get("open_trades", {}).items():
+                    self._trades[pair] = Trade(**td)
         except Exception as e:
             log.warning(f"Could not load position state: {e}")
 
     def _save(self) -> None:
         try:
             STATE_FILE.parent.mkdir(exist_ok=True)
-            STATE_FILE.write_text(json.dumps({"sl_streaks": self._sl_streaks}, indent=2))
+            open_trades = {}
+            for pair, t in self._trades.items():
+                open_trades[pair] = {
+                    k: v for k, v in t.__dict__.items()
+                }
+            STATE_FILE.write_text(json.dumps(
+                {"sl_streaks": self._sl_streaks, "open_trades": open_trades},
+                indent=2
+            ))
         except Exception as e:
             log.warning(f"Could not save position state: {e}")
 
