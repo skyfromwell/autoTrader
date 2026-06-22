@@ -112,8 +112,11 @@ def process_mcp_data(raw: dict) -> None:
              f"pred={raw.get('Prediction', 'n/a')}  "
              f"atr={raw.get('ATR', 'n/a')}")
 
-    # Order: protection → exits → entries
+    # Order: protection → price triggers → exits → entries
     check_trade_protection(pair, raw, features)
+    mark = _safe_float(raw.get("close"))
+    if mark:
+        check_price_triggers(pair, mark)
 
     if exit_val != 0:
         event = EXIT_MAP.get(exit_val)
@@ -150,6 +153,42 @@ def check_trade_protection(pair: str, raw: dict, features: dict) -> None:
     manager.move_sl(pair, new_sl, reason=f"protection_{level}")
     # Note: stock SL moves are tracked in state only (Alpaca doesn't support
     # modifying orders on paper account easily — add OCO when going live)
+
+
+# ─── Price-level Trigger Checker ─────────────────────────────────────────────
+
+def check_price_triggers(pair: str, mark_price: float) -> None:
+    """
+    Fire any pending price-level triggers for this pair.
+    Trigger format (stored in trade.price_triggers):
+      {"condition": "price_lte"|"price_gte", "price": float,
+       "action": "move_sl", "value": float, "note": str}
+    """
+    trade = manager.get_trade(pair)
+    if not trade or trade.closed or not trade.price_triggers:
+        return
+
+    fired = []
+    for i, trig in enumerate(trade.price_triggers):
+        cond  = trig.get("condition")
+        level = float(trig.get("price", 0))
+        met   = (cond == "price_lte" and mark_price <= level) or \
+                (cond == "price_gte" and mark_price >= level)
+        if not met:
+            continue
+
+        action = trig.get("action")
+        value  = float(trig.get("value", 0))
+        note   = trig.get("note", "")
+        if action == "move_sl":
+            old_sl = trade.sl
+            manager.move_sl(pair, value, reason=f"price_trigger({cond}@{level})")
+            log.info(f"[{pair}] 🎯 PRICE TRIGGER fired — {cond}@{level}  "
+                     f"sl {old_sl:.5f} → {value:.5f}  {note}")
+        fired.append(i)
+
+    for i in reversed(fired):
+        manager.fire_price_trigger(pair, i)
 
 
 # ─── Flip Detection / Close ───────────────────────────────────────────────────

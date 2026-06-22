@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -33,6 +33,7 @@ class Trade:
     runner_active: bool = False
     runner_regime: Optional[str]   = None
     bars_since_close: int = 0
+    price_triggers: list = field(default_factory=list)
 
 
 class CooldownManager:
@@ -73,8 +74,9 @@ class PositionManager:
             if STATE_FILE.exists():
                 data = json.loads(STATE_FILE.read_text())
                 self._sl_streaks = data.get("sl_streaks", {})
+                known = {f.name for f in fields(Trade)}
                 for pair, td in data.get("open_trades", {}).items():
-                    self._trades[pair] = Trade(**td)
+                    self._trades[pair] = Trade(**{k: v for k, v in td.items() if k in known})
         except Exception as e:
             log.warning(f"Could not load position state: {e}")
 
@@ -133,8 +135,16 @@ class PositionManager:
     def move_sl(self, pair: str, new_sl: float, reason: str = "") -> None:
         trade = self._trades.get(pair)
         if trade:
-            trade.sl          = new_sl
+            trade.sl           = new_sl
             trade.protected_sl = new_sl
+            self._save()
+
+    def fire_price_trigger(self, pair: str, idx: int) -> None:
+        """Remove a price trigger by index after it has fired."""
+        trade = self._trades.get(pair)
+        if trade and 0 <= idx < len(trade.price_triggers):
+            trade.price_triggers.pop(idx)
+            self._save()
 
     def update_runner_decision(self, pair: str, regime: str, confidence: float) -> None:
         trade = self._trades.get(pair)
