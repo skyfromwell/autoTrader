@@ -23,6 +23,7 @@ from watcher.position_manager  import PositionManager
 from trader.trader             import execute_trade as alpaca_execute
 from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
+from trader.hyperliquid_trader import close_position as hl_close, _hl_coin, _hl_post
 
 log        = logging.getLogger(__name__)
 classifier = RegimeClassifier()
@@ -151,47 +152,98 @@ def check_trade_protection(pair: str, raw: dict, features: dict) -> None:
     # modifying orders on paper account easily — add OCO when going live)
 
 
+# ─── Flip Detection / Close ───────────────────────────────────────────────────
+
+def _broker_has_opposite(pair: str, direction: str) -> bool:
+    """Return True if the broker holds a position in the direction opposite to `direction`.
+    Only queries Hyperliquid (crypto). For other brokers relies on manager state."""
+    prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    if prefix not in _CRYPTO_PREFIXES:
+        return False
+    try:
+        coin = _hl_coin(pair)
+        d    = _hl_post({"type": "clearinghouseState", "user": __import__("os").getenv("HL_WALLET_ADDRESS", "")})
+        for ap in d.get("assetPositions", []):
+            p   = ap["position"]
+            szi = float(p["szi"])
+            if p["coin"] == coin and szi != 0:
+                existing_dir = "long" if szi > 0 else "short"
+                return existing_dir != direction
+    except Exception as e:
+        log.warning(f"[{pair}] broker_has_opposite check failed: {e}")
+    return False
+
+
+def _close_broker_position(pair: str) -> None:
+    """Close any open broker position for this pair (used on signal flip)."""
+    prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    if prefix in _CRYPTO_PREFIXES:
+        hl_close(pair)
+    else:
+        log.warning(f"[{pair}] Flip close not yet wired for {prefix} — manual close needed")
+
+
 # ─── Entry Handler ────────────────────────────────────────────────────────────
 
 def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     direction = "long" if event == "long_entry" else "short"
     sl_streak = manager.get_sl_streak(pair)
     history   = manager.get_history(pair, n=4)
+    is_flip   = False
 
     existing = manager.get_trade(pair)
     if existing and not existing.closed:
-        log.warning(f"[{pair}] Signal ignored — trade already open")
-        return
+        if existing.direction == direction:
+            log.warning(f"[{pair}] Signal ignored — {direction} already open")
+            return
+        # Managed flip: close existing first, then open new
+        log.info(f"[{pair}] 🔄 FLIP — closing {existing.direction.upper()} → entering {direction.upper()}")
+        _close_broker_position(pair)
+        manager.close_trade(pair, reason="signal_flip",
+                            close_price=_safe_float(raw.get("close")))
+        is_flip = True
+    elif _broker_has_opposite(pair, direction):
+        # Broker has an untracked opposite position (e.g. opened by a prior session)
+        log.info(f"[{pair}] 🔄 FLIP (broker-detected) — closing stale opposite → {direction.upper()}")
+        _close_broker_position(pair)
+        is_flip = True
 
-    # Gate 1: Cooldown
-    if manager.cooldown.is_cooling_down(pair):
-        mins = manager.cooldown.remaining_minutes(pair)
-        log.info(f"[{pair}] ❌ BLOCKED — cooldown ({mins}m remaining)")
-        return
-
-    # Gate 2: Whipsaw score
+    # Compute whipsaw regardless — used for sizing even on flips
     whipsaw = _whipsaw_score(pair, raw, history, sl_streak)
-    if whipsaw["action"] == "block":
-        log.warning(f"[{pair}] ❌ BLOCKED — whipsaw score={whipsaw['score']} "
-                    f"{whipsaw['reasons']}")
-        return
 
-    # Gate 3: Revenge trade filter
-    if _is_revenge_trade(pair, direction, history):
-        log.warning(f"[{pair}] ❌ BLOCKED — revenge trade pattern")
-        return
+    if not is_flip:
+        # Gate 1: Cooldown
+        if manager.cooldown.is_cooling_down(pair):
+            mins = manager.cooldown.remaining_minutes(pair)
+            log.info(f"[{pair}] ❌ BLOCKED — cooldown ({mins}m remaining)")
+            return
 
-    # Gate 4: Entry confirmation rules
-    rule_level = ("strict"   if sl_streak >= 2 else
-                  "cautious" if sl_streak == 1 else "normal")
-    if not _passes_entry_rules(raw, ENTRY_RULES[rule_level]):
-        log.info(f"[{pair}] ❌ BLOCKED — failed {rule_level} entry rules")
-        return
+        # Gate 2: Whipsaw block
+        if whipsaw["action"] == "block":
+            log.warning(f"[{pair}] ❌ BLOCKED — whipsaw score={whipsaw['score']} "
+                        f"{whipsaw['reasons']}")
+            return
+
+        # Gate 3: Revenge trade filter
+        if _is_revenge_trade(pair, direction, history):
+            log.warning(f"[{pair}] ❌ BLOCKED — revenge trade pattern")
+            return
+
+        # Gate 4: Entry confirmation rules
+        rule_level = ("strict"   if sl_streak >= 2 else
+                      "cautious" if sl_streak == 1 else "normal")
+        if not _passes_entry_rules(raw, ENTRY_RULES[rule_level]):
+            log.info(f"[{pair}] ❌ BLOCKED — failed {rule_level} entry rules")
+            return
+    else:
+        rule_level = "normal"
+        if whipsaw["action"] == "block":
+            log.info(f"[{pair}] ⚠️ Flip bypasses whipsaw block (score={whipsaw['score']}) — reducing size")
 
     # Gate 5: Position sizing
-    size = 0.5 if (whipsaw["action"] == "reduce" or sl_streak >= 1) else 1.0
+    size = 0.5 if (whipsaw["action"] in ("block", "reduce") or sl_streak >= 1) else 1.0
     if size < 1.0:
-        log.info(f"[{pair}] ⚠️ Reduced size to 50% (streak={sl_streak})")
+        log.info(f"[{pair}] ⚠️ Reduced size to 50% (streak={sl_streak}, whipsaw={whipsaw['action']})")
 
     entry = _safe_float(raw.get("close"))
     atr   = _safe_float(raw.get("ATR"))
