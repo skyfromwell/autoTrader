@@ -7,9 +7,11 @@ Only scans symbols whose market is currently open (weekdays, within session hour
 Sleeps until the next 4H boundary OR the next market open, whichever is sooner.
 """
 
+import atexit
 import json
 import logging
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -28,6 +30,7 @@ TV_MCP_DIR = Path(os.getenv("TV_MCP_DIR", "/Users/shazhou/tradingview-mcp"))
 TV_CLI     = TV_MCP_DIR / "src/cli/index.js"
 OUTPUT_DIR = Path("output")
 STATE_FILE = OUTPUT_DIR / "watcher_state.json"
+PID_FILE   = OUTPUT_DIR / "watcher.pid"
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 JINGDA_STUDY = "Jingda"   # substring match against Data Window study name
@@ -253,10 +256,31 @@ def _check_symbol(tv_symbol: str, state: dict) -> dict:
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
+def _acquire_singleton() -> None:
+    """Exit if another watcher instance is already running; otherwise write PID file."""
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    if PID_FILE.exists():
+        try:
+            existing_pid = int(PID_FILE.read_text().strip())
+            os.kill(existing_pid, 0)   # raises OSError if process doesn't exist
+            log.error(
+                f"Another watcher is already running (PID {existing_pid}). "
+                f"Kill it first or delete {PID_FILE}. Exiting."
+            )
+            sys.exit(1)
+        except OSError:
+            log.warning(f"Stale PID file found (PID {PID_FILE.read_text().strip()} no longer running) — removing.")
+            PID_FILE.unlink(missing_ok=True)
+
+    PID_FILE.write_text(str(os.getpid()))
+    atexit.register(PID_FILE.unlink, missing_ok=True)
+
+
 def run_watcher():
+    _acquire_singleton()
     OUTPUT_DIR.mkdir(exist_ok=True)
     log.info("=" * 60)
-    log.info(f"  Stock Watcher started  |  {datetime.now():%Y-%m-%d %H:%M}")
+    log.info(f"  Stock Watcher started  |  {datetime.now():%Y-%m-%d %H:%M}  PID {os.getpid()}")
     log.info("  Scans only during market session hours")
     log.info("=" * 60)
 
