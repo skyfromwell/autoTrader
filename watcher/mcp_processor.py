@@ -108,6 +108,11 @@ def process_mcp_data(raw: dict) -> None:
     signal_val = _safe_int(raw.get("Signal Stream", 0))
     exit_val   = _safe_int(raw.get("Exit Stream",   0))
 
+    bars_missed = manager.record_pull(pair, signal_val)
+    if bars_missed > 0:
+        log.warning(f"[{pair}] ⚠️  MISSED {bars_missed} bar(s) since last pull — "
+                    f"signal carry-forward covers 1 bar only")
+
     log.info(f"[{pair}] signal={signal_val}  exit={exit_val}  "
              f"pred={raw.get('Prediction', 'n/a')}  "
              f"atr={raw.get('ATR', 'n/a')}")
@@ -177,14 +182,33 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
         if not met:
             continue
 
-        action = trig.get("action")
-        value  = float(trig.get("value", 0))
-        note   = trig.get("note", "")
+        action   = trig.get("action")
+        value    = float(trig.get("value", 0))
+        notional = int(trig.get("notional", _NOTIONAL_DEFAULT))
+        note     = trig.get("note", "")
         if action == "move_sl":
             old_sl = trade.sl
             manager.move_sl(pair, value, reason=f"price_trigger({cond}@{level})")
             log.info(f"[{pair}] 🎯 PRICE TRIGGER fired — {cond}@{level}  "
                      f"sl {old_sl:.5f} → {value:.5f}  {note}")
+        elif action == "flip_long":
+            log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_long — {cond}@{level}  {note}")
+            _close_broker_position(pair)
+            manager.close_trade(pair, reason=f"price_trigger_flip@{level}",
+                                close_price=mark_price)
+            _broker_execute(pair, "long", price=mark_price, notional=notional)
+            manager.open_trade(pair=pair, direction="long", entry=mark_price,
+                               tp=None, sl=None, atr=trade.atr, size=1.0, features={})
+            log.info(f"[{pair}] ✅ Flipped to LONG at {mark_price} notional=${notional:,}")
+        elif action == "flip_short":
+            log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_short — {cond}@{level}  {note}")
+            _close_broker_position(pair)
+            manager.close_trade(pair, reason=f"price_trigger_flip@{level}",
+                                close_price=mark_price)
+            _broker_execute(pair, "short", price=mark_price, notional=notional)
+            manager.open_trade(pair=pair, direction="short", entry=mark_price,
+                               tp=None, sl=None, atr=trade.atr, size=1.0, features={})
+            log.info(f"[{pair}] ✅ Flipped to SHORT at {mark_price} notional=${notional:,}")
         fired.append(i)
 
     for i in reversed(fired):
@@ -193,24 +217,32 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
 
 # ─── Flip Detection / Close ───────────────────────────────────────────────────
 
-def _broker_has_opposite(pair: str, direction: str) -> bool:
-    """Return True if the broker holds a position in the direction opposite to `direction`.
-    Only queries Hyperliquid (crypto). For other brokers relies on manager state."""
+def _broker_position_dir(pair: str) -> str | None:
+    """Return 'long', 'short', or None if no position (or non-crypto / error)."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if prefix not in _CRYPTO_PREFIXES:
-        return False
+        return None
     try:
+        import os as _os
         coin = _hl_coin(pair)
-        d    = _hl_post({"type": "clearinghouseState", "user": __import__("os").getenv("HL_WALLET_ADDRESS", "")})
+        d    = _hl_post({"type": "clearinghouseState", "user": _os.getenv("HL_WALLET_ADDRESS", "")})
         for ap in d.get("assetPositions", []):
             p   = ap["position"]
             szi = float(p["szi"])
             if p["coin"] == coin and szi != 0:
                 existing_dir = "long" if szi > 0 else "short"
-                return existing_dir != direction
+                log.info(f"[{pair}] broker position: {existing_dir.upper()} szi={szi}")
+                return existing_dir
+        log.info(f"[{pair}] broker position: none")
     except Exception as e:
-        log.warning(f"[{pair}] broker_has_opposite check failed: {e}")
-    return False
+        log.warning(f"[{pair}] broker position check failed: {e}")
+    return None
+
+
+def _broker_has_opposite(pair: str, direction: str) -> bool:
+    """Return True if the broker holds a position opposite to `direction`."""
+    broker_dir = _broker_position_dir(pair)
+    return broker_dir is not None and broker_dir != direction
 
 
 def _close_broker_position(pair: str) -> None:
@@ -233,14 +265,26 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     existing = manager.get_trade(pair)
     if existing and not existing.closed:
         if existing.direction == direction:
-            log.warning(f"[{pair}] Signal ignored — {direction} already open")
-            return
-        # Managed flip: close existing first, then open new
-        log.info(f"[{pair}] 🔄 FLIP — closing {existing.direction.upper()} → entering {direction.upper()}")
-        _close_broker_position(pair)
-        manager.close_trade(pair, reason="signal_flip",
-                            close_price=_safe_float(raw.get("close")))
-        is_flip = True
+            # State says same direction — but verify broker isn't actually opposite
+            # (can happen if prior session's position was manually reversed or SL-hit externally)
+            broker_dir = _broker_position_dir(pair)
+            if broker_dir is not None and broker_dir != direction:
+                log.info(f"[{pair}] 🔄 FLIP (state/broker mismatch) — state={existing.direction.upper()} "
+                         f"broker={broker_dir.upper()} → entering {direction.upper()}")
+                _close_broker_position(pair)
+                manager.close_trade(pair, reason="signal_flip",
+                                    close_price=_safe_float(raw.get("close")))
+                is_flip = True
+            else:
+                log.warning(f"[{pair}] Signal ignored — {direction} already open")
+                return
+        else:
+            # Managed flip: close existing first, then open new
+            log.info(f"[{pair}] 🔄 FLIP — closing {existing.direction.upper()} → entering {direction.upper()}")
+            _close_broker_position(pair)
+            manager.close_trade(pair, reason="signal_flip",
+                                close_price=_safe_float(raw.get("close")))
+            is_flip = True
     elif _broker_has_opposite(pair, direction):
         # Broker has an untracked opposite position (e.g. opened by a prior session)
         log.info(f"[{pair}] 🔄 FLIP (broker-detected) — closing stale opposite → {direction.upper()}")

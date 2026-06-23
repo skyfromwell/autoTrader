@@ -59,12 +59,17 @@ class CooldownManager:
         return int((expiry - datetime.now()).total_seconds() / 60)
 
 
+BAR_SECONDS = 4 * 3600  # 4H bars
+
+
 class PositionManager:
     def __init__(self):
-        self._trades:    dict[str, Trade]        = {}
-        self._history:   dict[str, list[Trade]]  = {}
-        self._sl_streaks: dict[str, int]         = {}
-        self.cooldown    = CooldownManager()
+        self._trades:       dict[str, Trade]        = {}
+        self._history:      dict[str, list[Trade]]  = {}
+        self._sl_streaks:   dict[str, int]          = {}
+        # symbol_state: {pair: {"last_pull": iso, "last_signal": iso, "last_signal_val": int}}
+        self._symbol_state: dict[str, dict]         = {}
+        self.cooldown       = CooldownManager()
         self._load()
 
     # ── Persistence ───────────────────────────────────────────────────────────
@@ -73,7 +78,8 @@ class PositionManager:
         try:
             if STATE_FILE.exists():
                 data = json.loads(STATE_FILE.read_text())
-                self._sl_streaks = data.get("sl_streaks", {})
+                self._sl_streaks   = data.get("sl_streaks", {})
+                self._symbol_state = data.get("symbol_state", {})
                 known = {f.name for f in fields(Trade)}
                 for pair, td in data.get("open_trades", {}).items():
                     self._trades[pair] = Trade(**{k: v for k, v in td.items() if k in known})
@@ -85,15 +91,45 @@ class PositionManager:
             STATE_FILE.parent.mkdir(exist_ok=True)
             open_trades = {}
             for pair, t in self._trades.items():
-                open_trades[pair] = {
-                    k: v for k, v in t.__dict__.items()
-                }
+                open_trades[pair] = {k: v for k, v in t.__dict__.items()}
             STATE_FILE.write_text(json.dumps(
-                {"sl_streaks": self._sl_streaks, "open_trades": open_trades},
+                {
+                    "sl_streaks":   self._sl_streaks,
+                    "symbol_state": self._symbol_state,
+                    "open_trades":  open_trades,
+                },
                 indent=2
             ))
         except Exception as e:
             log.warning(f"Could not save position state: {e}")
+
+    # ── Symbol pull / signal tracking ────────────────────────────────────────
+
+    def record_pull(self, pair: str, signal_val: int = 0) -> int:
+        """
+        Record a successful data pull for pair. Returns bars missed since last pull
+        (0 = on schedule, 1 = one bar late, etc.). Also records signal timestamp
+        if signal_val is non-zero.
+        """
+        now     = datetime.now()
+        state   = self._symbol_state.setdefault(pair, {})
+        last_ts = state.get("last_pull")
+
+        bars_missed = 0
+        if last_ts:
+            elapsed     = (now - datetime.fromisoformat(last_ts)).total_seconds()
+            bars_missed = max(0, int(elapsed / BAR_SECONDS) - 1)
+
+        state["last_pull"] = now.isoformat(timespec="seconds")
+        if signal_val != 0:
+            state["last_signal"]     = now.isoformat(timespec="seconds")
+            state["last_signal_val"] = signal_val
+
+        self._save()
+        return bars_missed
+
+    def get_symbol_state(self, pair: str) -> dict:
+        return self._symbol_state.get(pair, {})
 
     # ── Trade CRUD ────────────────────────────────────────────────────────────
 
