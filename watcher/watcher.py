@@ -36,7 +36,7 @@ PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 JINGDA_STUDY = "Jingda"   # substring match against Data Window study name
 
 # Prefixes that trade 24/7 (crypto) or 24/5 weekdays (forex) — no hours check needed
-_CRYPTO_PREFIXES_WL = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP"}
+_CRYPTO_PREFIXES_WL = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
 _FOREX_PREFIXES_WL  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 
 log = logging.getLogger(__name__)
