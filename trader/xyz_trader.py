@@ -134,13 +134,6 @@ def open_long(
     sl = entry_px - atr_sl_mult * atr
 
     # ── 3. TP limit order (sell, reduce-only) ────────────────────────────────
-    def _px_wire(px: float) -> float:
-        """Round to 5 significant figures."""
-        if px == 0:
-            return 0.0
-        mag    = 10 ** (5 - int(np.floor(np.log10(abs(px)))) - 1)
-        return round(px * mag) / mag
-
     log.info(f"[{coin}] placing TP at ${tp:.4f}")
     tp_res = exchange.order(
         coin,
@@ -175,6 +168,75 @@ def open_long(
         "margin":  margin_usd,
         "leverage": leverage,
     }
+
+
+# ── SL management ────────────────────────────────────────────────────────────
+
+def move_sl(coin: str, new_sl: float, direction: str) -> dict:
+    """
+    Cancel the existing SL order on xyz DEX and place a new one at new_sl.
+    direction: 'long' or 'short'
+    """
+    exchange, info = _clients()
+    wallet = os.environ["HL_WALLET_ADDRESS"]
+
+    from trader.hyperliquid_trader import _hl_post
+    open_orders = _hl_post({'type': 'openOrders', 'user': wallet, 'dex': 'xyz'})
+    coin_orders  = [o for o in open_orders if o['coin'] == coin]
+
+    is_long = direction.lower() == 'long'
+    if is_long:
+        # SL for long = lowest sell (trigger) order
+        sl_orders = sorted(
+            [o for o in coin_orders if o['side'] == 'A'],
+            key=lambda o: float(o['limitPx'])
+        )
+        sl_order = sl_orders[0] if sl_orders else None
+    else:
+        # SL for short = highest buy (trigger) order
+        sl_orders = sorted(
+            [o for o in coin_orders if o['side'] == 'B'],
+            key=lambda o: float(o['limitPx']), reverse=True
+        )
+        sl_order = sl_orders[0] if sl_orders else None
+
+    asset = info.name_to_asset(coin)
+    dec   = sz_decimals(coin)
+
+    # Cancel old SL
+    if sl_order:
+        from hyperliquid.utils.signing import CancelRequest
+        result = exchange.cancel(coin, sl_order['oid'])
+        log.info(f"[{coin}] cancelled old SL oid={sl_order['oid']}  result={result}")
+
+    # Get current size from position
+    from trader.hyperliquid_trader import _hl_post
+    state = _hl_post({'type': 'clearinghouseState', 'user': wallet, 'dex': 'xyz'})
+    pos   = next((ap['position'] for ap in state.get('assetPositions', [])
+                  if ap['position']['coin'] == coin), None)
+    size  = round(abs(float(pos['szi'])), dec) if pos else (sl_order['sz'] if sl_order else 0)
+
+    # Place new SL trigger
+    new_sl_wired = _px_wire(new_sl)
+    limit_px     = _px_wire(new_sl * 0.95 if is_long else new_sl * 1.05)
+    from hyperliquid.utils.signing import OrderType
+    result = exchange.order(
+        coin,
+        is_buy=not is_long,
+        sz=float(size),
+        limit_px=limit_px,
+        order_type=OrderType({"trigger": {"isMarket": True, "triggerPx": new_sl_wired, "tpsl": "sl"}}),
+        reduce_only=True,
+    )
+    log.info(f"[{coin}] new SL placed at ${new_sl}  result={result}")
+    return result
+
+
+def _px_wire(px: float) -> float:
+    if px == 0:
+        return 0.0
+    mag = 10 ** (5 - int(np.floor(np.log10(abs(px)))) - 1)
+    return round(px * mag) / mag
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

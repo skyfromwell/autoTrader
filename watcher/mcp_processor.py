@@ -24,6 +24,7 @@ from trader.trader             import execute_trade as alpaca_execute
 from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close, _hl_coin, _hl_post
+from trader.xyz_trader         import move_sl as xyz_move_sl
 
 log        = logging.getLogger(__name__)
 classifier = RegimeClassifier()
@@ -162,6 +163,33 @@ def check_trade_protection(pair: str, raw: dict, features: dict) -> None:
 
 # ─── Price-level Trigger Checker ─────────────────────────────────────────────
 
+_XYZ_PREFIX = "XYZ:"
+
+def _broker_move_sl(pair: str, new_sl: float) -> None:
+    """Push the new SL to the actual broker order so it survives watcher downtime."""
+    trade = manager.get_trade(pair)
+    if not trade:
+        return
+    try:
+        if pair.upper().startswith(_XYZ_PREFIX):
+            coin = pair.replace("XYZ:", "xyz:")
+            xyz_move_sl(coin, new_sl, trade.direction)
+        else:
+            # Standard HL perp: use JS-based cancel+replace
+            import subprocess, os, json
+            js = str(Path(__file__).parent.parent.parent /
+                     "tradingview-mcp" / "scripts" / "move_sl.mjs")
+            result = subprocess.run(
+                [os.environ.get("NODE_BIN", "node"), "--input-type=module",
+                 "--eval",
+                 f'import("{js}").then(m => m.moveSl("{_hl_coin(pair)}", {new_sl}, "{"long" if trade.direction=="long" else "short"}"))'],
+                capture_output=True, text=True, timeout=20,
+            )
+            log.info(f"[{pair}] broker SL move result: {result.stdout.strip()}")
+    except Exception as e:
+        log.error(f"[{pair}] _broker_move_sl failed: {e}")
+
+
 def check_price_triggers(pair: str, mark_price: float) -> None:
     """
     Fire any pending price-level triggers for this pair.
@@ -191,6 +219,7 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
             manager.move_sl(pair, value, reason=f"price_trigger({cond}@{level})")
             log.info(f"[{pair}] 🎯 PRICE TRIGGER fired — {cond}@{level}  "
                      f"sl {old_sl:.5f} → {value:.5f}  {note}")
+            _broker_move_sl(pair, value)
         elif action == "flip_long":
             log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_long — {cond}@{level}  {note}")
             _close_broker_position(pair)
