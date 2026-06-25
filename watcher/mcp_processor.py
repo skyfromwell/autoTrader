@@ -25,6 +25,8 @@ from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close, _hl_coin, _hl_post
 from trader.xyz_trader         import move_sl as xyz_move_sl
+from trader.china_trader       import execute_trade as china_execute
+from trader.china_trader       import close_position as china_close
 
 log        = logging.getLogger(__name__)
 classifier = RegimeClassifier()
@@ -66,7 +68,7 @@ def _broker_execute(pair: str, direction: str, price: float | None = None,
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if prefix in _CHINESE_PREFIXES:
-        log.info(f"[{pair}] SIGNAL logged — no Chinese broker configured, skipping execution")
+        china_execute(pair, direction, price=price or 0, notional=notional)
         return
     if prefix in _CRYPTO_PREFIXES:
         hl_execute(pair, direction, price=price, notional=notional)
@@ -279,6 +281,8 @@ def _close_broker_position(pair: str) -> None:
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if prefix in _CRYPTO_PREFIXES:
         hl_close(pair)
+    elif prefix in _CHINESE_PREFIXES:
+        china_close(pair)
     else:
         log.warning(f"[{pair}] Flip close not yet wired for {prefix} — manual close needed")
 
