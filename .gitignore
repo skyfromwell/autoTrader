@@ -1,5 +1,6 @@
 .env
 output/
+!output/position_state.json
 __pycache__/
 *.pyc
 .DS_Store
