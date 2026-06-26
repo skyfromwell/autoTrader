@@ -68,15 +68,16 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
                   sl: float | None = None) -> dict:
     """Open a Hyperliquid perp position.
 
-    `notional` is treated as margin (USDC). The actual position size sent to
-    Hyperliquid = notional × leverage, matching the account's current leverage
-    setting for that coin.
+    `notional` is the TARGET EXPOSURE in USD (same as Alpaca stocks).
+    Margin sent to Hyperliquid = notional / leverage, so a $10k notional
+    at 10x leverage uses $1k margin — consistent with stock sizing.
     """
     coin = _hl_coin(tv_symbol)
     is_long = direction.lower() in ("long", "buy")
 
-    leverage = _get_leverage(coin)
-    position_usd = notional * leverage
+    leverage   = _get_leverage(coin)
+    position_usd = notional                          # target exposure
+    margin       = notional // leverage if leverage > 0 else notional
 
     cmd = [
         _NODE, os.path.abspath(_JS_SCRIPT),
@@ -89,7 +90,7 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
     ]
 
     log.info(f"[HYPERLIQUID] {tv_symbol} → {coin} {direction.upper()}  "
-             f"margin=${notional}  leverage={leverage}x  notional=${position_usd}  "
+             f"margin=${margin}  leverage={leverage}x  notional=${position_usd}  "
              f"tp={tp}  sl={sl}")
     try:
         result = subprocess.run(

@@ -14,7 +14,7 @@ from xtquant.xttype import StockAccount
 log = logging.getLogger(__name__)
 
 ACCOUNT_ID = os.getenv("QMT_ACCOUNT", "测试66801935")
-QMT_PATH   = os.getenv("QMT_PATH", r"C:\miniQMT\userdata_mini")
+QMT_PATH   = os.getenv("QMT_PATH", r"P:\XUNTOU\金融街证券QMT模拟 - 交易终端\userdata_mini")
 
 _trader: XtQuantTrader | None = None
 _acc:    StockAccount   | None = None
@@ -22,7 +22,7 @@ _acc:    StockAccount   | None = None
 
 def connect() -> None:
     global _trader, _acc
-    _trader = XtQuantTrader(QMT_PATH, session_id=1)
+    _trader = XtQuantTrader(QMT_PATH, 1)
     _acc    = StockAccount(ACCOUNT_ID)
     _trader.start()
     result = _trader.connect()
