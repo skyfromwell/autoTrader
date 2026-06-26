@@ -60,12 +60,13 @@ manager = PositionManager()
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
-def _verify(secret: str | None):
+def _verify(secret: str | None, query_secret: str | None = None):
     if not TV_SECRET:
         log.warning("TV_WEBHOOK_SECRET not set — running unauthenticated!")
         return
-    if secret != TV_SECRET:
-        raise HTTPException(status_code=401, detail="Invalid X-TV-Secret")
+    if secret == TV_SECRET or query_secret == TV_SECRET:
+        return
+    raise HTTPException(status_code=401, detail="Invalid secret")
 
 
 # ── Broker routing ────────────────────────────────────────────────────────────
@@ -121,8 +122,9 @@ def health():
 async def receive_alert(
     payload: AlertPayload,
     x_tv_secret: Optional[str] = Header(None),
+    secret: Optional[str] = None,
 ):
-    _verify(x_tv_secret)
+    _verify(x_tv_secret, secret)
 
     pair   = payload.pair
     action = payload.action.lower().replace("-", "_")
