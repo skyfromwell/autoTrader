@@ -165,6 +165,56 @@
         {"condition": "price_gte", "price": 0.58529, "action": "move_sl", "value": 0.57829, "note": "NZDUSD 75% → SL to 50%"}
       ]
     },
+    "OANDA:AUDUSD": {
+      "pair": "OANDA:AUDUSD",
+      "direction": "long",
+      "entry": 0.68997,
+      "tp": 0.71197,
+      "sl": 0.67997,
+      "atr": 0.004,
+      "size": 10000,
+      "features": {},
+      "bar_time": null,
+      "open_time": null,
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [
+        {"condition": "price_gte", "price": 0.69797, "action": "move_sl", "value": 0.68997, "note": "AUDUSD 25% → SL to entry"},
+        {"condition": "price_gte", "price": 0.70597, "action": "move_sl", "value": 0.69797, "note": "AUDUSD 50% → SL to 25%"},
+        {"condition": "price_gte", "price": 0.71397, "action": "move_sl", "value": 0.70597, "note": "AUDUSD 75% → SL to 50%"}
+      ]
+    },
+    "OANDA:USDJPY": {
+      "pair": "OANDA:USDJPY",
+      "direction": "short",
+      "entry": 160.78,
+      "tp": 154.18,
+      "sl": 163.78,
+      "atr": 1.20,
+      "size": 100000,
+      "features": {},
+      "bar_time": null,
+      "open_time": null,
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [
+        {"condition": "price_lte", "price": 158.38, "action": "move_sl", "value": 160.78, "note": "USDJPY 25% → SL to entry"},
+        {"condition": "price_lte", "price": 155.98, "action": "move_sl", "value": 158.38, "note": "USDJPY 50% → SL to 25%"},
+        {"condition": "price_lte", "price": 153.58, "action": "move_sl", "value": 155.98, "note": "USDJPY 75% → SL to 50%"}
+      ]
+    },
     "XYZ:GOLD": {
       "pair": "XYZ:GOLD",
       "direction": "long",
