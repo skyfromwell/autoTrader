@@ -97,12 +97,15 @@ def get_positions() -> list[dict]:
 
 def get_account() -> dict:
     asset = _t().query_stock_asset(_acc)
+    if asset is None:
+        return {"account_id": ACCOUNT_ID, "cash": None, "frozen_cash": None,
+                "market_value": None, "total_asset": None, "note": "no data (market closed?)"}
     return {
-        "account_id":   asset.account_id,
-        "cash":         asset.cash,
-        "frozen_cash":  asset.frozen_cash,
-        "market_value": asset.market_value,
-        "total_asset":  asset.total_asset,
+        "account_id":   getattr(asset, "account_id",   ACCOUNT_ID),
+        "cash":         getattr(asset, "cash",          None),
+        "frozen_cash":  getattr(asset, "frozen_cash",   None),
+        "market_value": getattr(asset, "market_value",  None),
+        "total_asset":  getattr(asset, "total_asset",   None),
     }
 
 
