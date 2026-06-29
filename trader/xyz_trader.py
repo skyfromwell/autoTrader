@@ -232,6 +232,103 @@ def move_sl(coin: str, new_sl: float, direction: str) -> dict:
     return result
 
 
+# ── TV symbol routing ────────────────────────────────────────────────────────
+
+_TV_TO_XYZ: dict[str, str] = {
+    "COINBASE:GOLDUSDC.P":   "xyz:GOLD",
+    "COINBASE:SILVERUSDC.P": "xyz:SILVER",
+    "XYZ:GOLD":   "xyz:GOLD",
+    "XYZ:SILVER": "xyz:SILVER",
+    "XYZ:CL":     "xyz:CL",
+    "XYZ:BRENTOIL": "xyz:BRENTOIL",
+}
+
+def tv_to_xyz(tv_pair: str) -> str | None:
+    return _TV_TO_XYZ.get(tv_pair.upper())
+
+
+def open_short(
+    coin: str,
+    margin_usd: float = 100.0,
+    leverage:   int   = 5,
+    atr_tp_mult: float = 8.0,
+    atr_sl_mult: float = 3.0,
+    slippage:   float = 0.01,
+) -> dict:
+    exchange, info = _clients()
+    mid = get_mid(coin)
+    atr = compute_atr(coin)
+    tp  = mid - atr_tp_mult * atr
+    sl  = mid + atr_sl_mult * atr
+    notional = margin_usd * leverage
+    dec  = sz_decimals(coin)
+    size = round(notional / mid, dec)
+
+    log.info(f"[{coin}] SHORT mid=${mid:.4f}  atr={atr:.4f}  tp=${tp:.4f}  sl=${sl:.4f}")
+    exchange.update_isolated_margin(margin_usd, coin)
+    entry_res = exchange.market_open(coin, is_buy=False, sz=size, slippage=slippage)
+    statuses  = entry_res.get("response", {}).get("data", {}).get("statuses", [{}])
+    filled    = statuses[0].get("filled", {})
+    entry_px  = float(filled.get("avgPx", mid)) if filled else mid
+
+    tp = entry_px - atr_tp_mult * atr
+    sl = entry_px + atr_sl_mult * atr
+
+    # TP limit (buy back, reduce-only)
+    exchange.order(coin, is_buy=True, sz=size, limit_px=_px_wire(tp),
+                   order_type=OrderType({"limit": {"tif": "Gtc"}}), reduce_only=True)
+    # SL trigger
+    exchange.order(coin, is_buy=True, sz=size, limit_px=_px_wire(sl * 1.05),
+                   order_type=OrderType({"trigger": {"isMarket": True, "triggerPx": _px_wire(sl), "tpsl": "sl"}}),
+                   reduce_only=True)
+
+    return {"coin": coin, "mid": mid, "entry": entry_px, "atr": atr, "tp": tp, "sl": sl,
+            "size": size, "margin": margin_usd, "leverage": leverage}
+
+
+def execute_trade(tv_pair: str, direction: str, price: float | None = None,
+                  notional: int = 10_000) -> dict:
+    """Route TV symbol to xyz open_long / open_short."""
+    coin = tv_to_xyz(tv_pair)
+    if not coin:
+        raise ValueError(f"Unknown xyz TV pair: {tv_pair}")
+    mid  = get_mid(coin)
+    # Price check: skip if execution would be worse than signal price
+    if price and price > 0:
+        if direction == "short" and mid < price * 0.998:
+            log.warning(f"[{coin}] SHORT skip — mid {mid:.4f} < signal {price:.4f} (price moved away)")
+            return {"skipped": True, "reason": "price_worse_than_signal", "mid": mid, "signal": price}
+        if direction == "long" and mid > price * 1.002:
+            log.warning(f"[{coin}] LONG skip — mid {mid:.4f} > signal {price:.4f} (price moved away)")
+            return {"skipped": True, "reason": "price_worse_than_signal", "mid": mid, "signal": price}
+    margin = notional // 5   # default 5x leverage for xyz
+    if direction == "long":
+        return open_long(coin, margin_usd=margin)
+    else:
+        return open_short(coin, margin_usd=margin)
+
+
+def close_position(tv_pair: str) -> dict:
+    """Close all xyz position for a TV symbol."""
+    coin = tv_to_xyz(tv_pair)
+    if not coin:
+        raise ValueError(f"Unknown xyz TV pair: {tv_pair}")
+    exchange, _ = _clients()
+    wallet = os.environ["HL_WALLET_ADDRESS"]
+    from trader.hyperliquid_trader import _hl_post
+    state = _hl_post({'type': 'clearinghouseState', 'user': wallet, 'dex': 'xyz'})
+    pos   = next((ap['position'] for ap in state.get('assetPositions', [])
+                  if ap['position']['coin'] == coin), None)
+    if not pos or float(pos['szi']) == 0:
+        return {"skipped": True, "reason": "no_position"}
+    szi    = float(pos['szi'])
+    is_buy = szi < 0   # closing short → buy back
+    size   = round(abs(szi), sz_decimals(coin))
+    result = exchange.market_close(coin, sz=size)
+    log.info(f"[{coin}] closed {size}  result={result}")
+    return {"coin": coin, "closed": True, "size": size}
+
+
 def _px_wire(px: float) -> float:
     if px == 0:
         return 0.0

@@ -25,6 +25,9 @@ from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close, _hl_coin, _hl_post
 from trader.xyz_trader         import move_sl as xyz_move_sl
+from trader.xyz_trader         import execute_trade as xyz_execute
+from trader.xyz_trader         import close_position as xyz_close
+from trader.xyz_trader         import tv_to_xyz
 from trader.china_trader       import execute_trade as china_execute
 from trader.china_trader       import close_position as china_close
 
@@ -67,6 +70,9 @@ def _broker_execute(pair: str, direction: str, price: float | None = None,
                     notional: int = _NOTIONAL_DEFAULT) -> None:
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    if tv_to_xyz(pair):
+        xyz_execute(pair, direction, price=price, notional=notional)
+        return
     if prefix in _CHINESE_PREFIXES:
         china_execute(pair, direction, price=price or 0, notional=notional)
         return
@@ -278,6 +284,9 @@ def _broker_has_opposite(pair: str, direction: str) -> bool:
 
 def _close_broker_position(pair: str) -> None:
     """Close any open broker position for this pair (used on signal flip)."""
+    if tv_to_xyz(pair):
+        xyz_close(pair)
+        return
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if prefix in _CRYPTO_PREFIXES:
         hl_close(pair)
