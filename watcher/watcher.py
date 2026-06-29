@@ -130,19 +130,41 @@ def _seconds_until_any_open(symbols: list[str]) -> int:
     return min_secs
 
 
-# ── Pacific-time 4H scheduling ────────────────────────────────────────────────
+# ── Per-market 4H period alignment ───────────────────────────────────────────
+# Crypto:  UTC 4H boundaries (00,04,08,12,16,20 UTC)
+# Forex:   Pacific time 4H boundaries (user confirmed correct)
+# Stocks:  ET minus 30 min so session-open bars (9:30, 1:30 PM ET) land on
+#          ET-hour boundaries (9:00, 13:00) and map cleanly to period IDs
+
+_ET_TZ = ZoneInfo("America/New_York")
+
+
+def _utc_now() -> datetime:
+    return datetime.now(ZoneInfo("UTC"))
+
 
 def _pacific_now() -> datetime:
     return datetime.now(PACIFIC_TZ)
 
 
-def _period_id(dt: datetime | None = None) -> str:
-    dt = dt or _pacific_now()
-    return f"{dt.date()}-{dt.hour // 4}"
+def _period_id(symbol: str = "") -> str:
+    """Dedup key: one scan per 4H bar per symbol, aligned to each market's bar close."""
+    prefix = symbol.split(":")[0].upper() if ":" in symbol else ""
+    if prefix in _CRYPTO_PREFIXES_WL:
+        dt = _utc_now()
+        return f"UTC-{dt.date()}-{dt.hour // 4}"
+    elif prefix in _FOREX_PREFIXES_WL:
+        dt = _pacific_now()
+        return f"PT-{dt.date()}-{dt.hour // 4}"
+    else:
+        # Stocks: shift ET back 30 min so 9:30→9:00, 1:30PM→1:00PM, etc.
+        dt = datetime.now(_ET_TZ) - timedelta(minutes=30)
+        return f"ET30-{dt.date()}-{dt.hour // 4}"
 
 
 def _seconds_until_next_4h() -> int:
-    now = _pacific_now()
+    # Sleep on UTC boundaries — crypto is always open and drives the scan cadence
+    now = _utc_now()
     seconds_into_block = (now.hour % 4) * 3600 + now.minute * 60 + now.second
     return (4 * 3600 - seconds_into_block) + 60
 
@@ -250,7 +272,7 @@ def _check_symbol(tv_symbol: str, state: dict) -> dict:
     except Exception as e:
         log.error(f"{tv_symbol}: mcp_processor error — {e}")
 
-    s["last_period"] = _period_id()
+    s["last_period"] = _period_id(tv_symbol)
     return s
 
 
@@ -305,12 +327,12 @@ def run_watcher():
             continue
 
         log.info(f"Open markets: {', '.join(sorted(open_prefixes))}")
-        log.info(f"Checking {len(active)}/{len(symbols)} symbols  |  period {_period_id()}")
+        log.info(f"Checking {len(active)}/{len(symbols)} symbols")
 
         for tv_symbol in active:
             sym_state   = state.get(tv_symbol, {})
             last_period = sym_state.get("last_period")
-            if last_period is not None and last_period == _period_id():
+            if last_period is not None and last_period == _period_id(tv_symbol):
                 log.debug(f"{tv_symbol}: already checked this period — skipping")
                 continue
             try:
