@@ -9,11 +9,17 @@ from xtquant.xttrader import XtQuantTrader
 from xtquant.xttype import StockAccount
 
 QMT_PATH   = r"P:\XUNTOU\金融街证券QMT模拟 - 交易终端\userdata_mini"
-ACCOUNT_ID = "测试66801935"
+
+# Try multiple account ID formats
+ACCOUNT_IDS = [
+    "测试66801935",
+    "66801935",
+    "SIMTEST66801935",
+    "SIM66801935",
+]
 
 print(f"[1] Creating trader  path={QMT_PATH}")
 trader = XtQuantTrader(QMT_PATH, 2)   # session=2 to avoid conflict with running server
-acc    = StockAccount(ACCOUNT_ID)
 
 print("[2] Starting trader...")
 trader.start()
@@ -22,29 +28,36 @@ print("[3] Connecting...")
 result = trader.connect()
 print(f"    connect() → {result}  (0=ok)")
 
-print("[4] Subscribing account...")
-trader.subscribe(acc)
-
-print("[5] Polling for account asset (up to 30s)...")
-asset = None
-for i in range(30):
-    asset = trader.query_stock_asset(acc)
-    if asset is not None:
-        print(f"    asset ready after {i+1}s")
+# Try each account ID format
+working_acc = None
+for acct_id in ACCOUNT_IDS:
+    acc = StockAccount(acct_id)
+    trader.subscribe(acc)
+    print(f"\n[4] Trying account ID: '{acct_id}'")
+    asset = None
+    for i in range(8):
+        asset = trader.query_stock_asset(acc)
+        if asset is not None:
+            print(f"    ✓ asset ready after {i+1}s — cash={asset.cash}  total={asset.total_asset}")
+            working_acc = acc
+            break
+        time.sleep(1)
+    if working_acc:
         break
-    print(f"    [{i+1}s] still None...")
-    time.sleep(1)
-print(f"    asset → {asset}")
-if asset:
-    print(f"    cash={asset.cash}  total={asset.total_asset}")
+    print(f"    ✗ no data for '{acct_id}'")
 
-print("[6] Querying positions...")
-positions = trader.query_stock_positions(acc)
+if not working_acc:
+    print("\n[!] No account ID worked — check QMT GUI for the correct account ID")
+    trader.stop()
+    exit(1)
+
+print(f"\n[5] Working account: {working_acc.account_id}")
+positions = trader.query_stock_positions(working_acc)
 print(f"    positions → {positions}")
 
-print("[7] Placing limit order  600036.SH  100 shares @ 45.00...")
+print("\n[6] Placing limit order  600036.SH  100 shares @ 45.00...")
 order_id = trader.order_stock(
-    account       = acc,
+    account       = working_acc,
     stock_code    = "600036.SH",
     order_type    = xtconstant.STOCK_BUY,
     order_volume  = 100,
@@ -55,18 +68,5 @@ order_id = trader.order_stock(
 )
 print(f"    order_id → {order_id}  (-1=rejected)")
 
-print("[8] Placing market order  600036.SH  100 shares (MARKET_SH_CONVERT_5_CANCEL)...")
-order_id2 = trader.order_stock(
-    account       = acc,
-    stock_code    = "600036.SH",
-    order_type    = xtconstant.STOCK_BUY,
-    order_volume  = 100,
-    price_type    = xtconstant.MARKET_SH_CONVERT_5_CANCEL,
-    price         = 0,
-    strategy_name = "debug",
-    order_remark  = "",
-)
-print(f"    order_id → {order_id2}  (-1=rejected)")
-
-print("[9] Done.")
+print("\n[7] Done.")
 trader.stop()
