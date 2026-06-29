@@ -151,6 +151,22 @@ def get_account() -> dict:
     }
 
 
+def get_quote(symbol: str) -> dict:
+    from xtquant import xtdata
+    ticks = xtdata.get_full_tick([symbol])
+    t = ticks.get(symbol)
+    if not t:
+        return {"symbol": symbol, "price": None}
+    return {
+        "symbol":    symbol,
+        "price":     t.get("lastPrice") or t.get("last") or t.get("close"),
+        "bid":       t.get("bidPrice", [None])[0],
+        "ask":       t.get("askPrice", [None])[0],
+        "high":      t.get("high"),
+        "low":       t.get("low"),
+    }
+
+
 def get_orders() -> list[dict]:
     orders = _t().query_stock_orders(_acc)
     return [

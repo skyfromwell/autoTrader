@@ -73,6 +73,11 @@ def get_account() -> dict:
     return broker.get_account()
 
 
+@app.get("/quote/{symbol}", dependencies=[Depends(verify_key)])
+def get_quote(symbol: str = Path(...)) -> dict:
+    return broker.get_quote(symbol)
+
+
 @app.get("/orders", dependencies=[Depends(verify_key)])
 def get_orders() -> list[dict]:
     return broker.get_orders()
