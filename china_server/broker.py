@@ -8,7 +8,7 @@ import logging
 import os
 
 from xtquant import xtconstant
-from xtquant.xttrader import XtQuantTrader
+from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
 from xtquant.xttype import StockAccount
 
 log = logging.getLogger(__name__)
@@ -16,20 +16,48 @@ log = logging.getLogger(__name__)
 ACCOUNT_ID = os.getenv("QMT_ACCOUNT", "测试66801935")
 QMT_PATH   = os.getenv("QMT_PATH", r"P:\XUNTOU\金融街证券QMT模拟 - 交易终端\userdata_mini")
 
-_trader: XtQuantTrader | None = None
-_acc:    StockAccount   | None = None
+_trader:   XtQuantTrader | None = None
+_acc:      StockAccount   | None = None
+_connected: bool = False
+
+
+class _Callback(XtQuantTraderCallback):
+    def on_connected(self):
+        global _connected
+        _connected = True
+        log.info("miniQMT on_connected fired — ready to trade")
+
+    def on_disconnected(self):
+        global _connected
+        _connected = False
+        log.warning("miniQMT disconnected")
+
+    def on_account_status(self, status):
+        log.info(f"account_status: {status}")
 
 
 def connect() -> None:
-    global _trader, _acc
-    _trader = XtQuantTrader(QMT_PATH, 1)
+    global _trader, _acc, _connected
+    _connected = False
+    _trader = XtQuantTrader(QMT_PATH, 1, callback=_Callback())
     _acc    = StockAccount(ACCOUNT_ID)
     _trader.start()
     result = _trader.connect()
     if result != 0:
         raise RuntimeError(f"miniQMT connect failed: code={result}")
     _trader.subscribe(_acc)
-    log.info(f"miniQMT connected — account={ACCOUNT_ID}")
+    log.info(f"miniQMT connect() returned 0 — account={ACCOUNT_ID}")
+
+
+def reconnect() -> dict:
+    global _trader, _acc, _connected
+    try:
+        if _trader:
+            _trader.stop()
+    except Exception:
+        pass
+    connect()
+    return {"status": "reconnected", "connected": _connected}
 
 
 def _t() -> XtQuantTrader:

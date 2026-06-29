@@ -78,6 +78,16 @@ def get_orders() -> list[dict]:
     return broker.get_orders()
 
 
+@app.post("/reconnect", dependencies=[Depends(verify_key)])
+def reconnect() -> dict:
+    return broker.reconnect()
+
+
+@app.get("/status", dependencies=[Depends(verify_key)])
+def status() -> dict:
+    return {"connected": broker._connected, "account": broker.ACCOUNT_ID}
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
