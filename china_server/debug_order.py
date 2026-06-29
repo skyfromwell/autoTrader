@@ -24,10 +24,16 @@ print(f"    connect() → {result}  (0=ok)")
 
 print("[4] Subscribing account...")
 trader.subscribe(acc)
-time.sleep(2)   # give it a moment to settle
 
-print("[5] Querying account asset...")
-asset = trader.query_stock_asset(acc)
+print("[5] Polling for account asset (up to 30s)...")
+asset = None
+for i in range(30):
+    asset = trader.query_stock_asset(acc)
+    if asset is not None:
+        print(f"    asset ready after {i+1}s")
+        break
+    print(f"    [{i+1}s] still None...")
+    time.sleep(1)
 print(f"    asset → {asset}")
 if asset:
     print(f"    cash={asset.cash}  total={asset.total_asset}")

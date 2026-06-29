@@ -6,6 +6,7 @@ All order logic lives here; api.py just translates HTTP ↔ these calls.
 from __future__ import annotations
 import logging
 import os
+import time
 
 from xtquant import xtconstant
 from xtquant.xttrader import XtQuantTrader, XtQuantTraderCallback
@@ -46,7 +47,20 @@ def connect() -> None:
     if result != 0:
         raise RuntimeError(f"miniQMT connect failed: code={result}")
     _trader.subscribe(_acc)
-    log.info(f"miniQMT connect() returned 0 — account={ACCOUNT_ID}")
+    log.info(f"miniQMT connect() returned 0 — waiting for account data...")
+    _wait_for_account()
+
+
+def _wait_for_account(timeout: int = 30) -> None:
+    global _connected
+    for i in range(timeout):
+        asset = _trader.query_stock_asset(_acc)
+        if asset is not None:
+            _connected = True
+            log.info(f"Account ready after {i+1}s — cash={asset.cash}  total={asset.total_asset}")
+            return
+        time.sleep(1)
+    log.warning(f"Account data still None after {timeout}s — orders may be rejected")
 
 
 def reconnect() -> dict:
