@@ -14,7 +14,7 @@ from xtquant.xttype import StockAccount
 
 log = logging.getLogger(__name__)
 
-ACCOUNT_ID = os.getenv("QMT_ACCOUNT", "测试66801935")
+ACCOUNT_ID = os.getenv("QMT_ACCOUNT", "66801935")
 QMT_PATH   = os.getenv("QMT_PATH", r"P:\XUNTOU\金融街证券QMT模拟 - 交易终端\userdata_mini")
 
 _trader:   XtQuantTrader | None = None

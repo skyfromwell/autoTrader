@@ -12,10 +12,8 @@ QMT_PATH   = r"P:\XUNTOU\金融街证券QMT模拟 - 交易终端\userdata_mini"
 
 # Try multiple account ID formats
 ACCOUNT_IDS = [
-    "测试66801935",
     "66801935",
-    "SIMTEST66801935",
-    "SIM66801935",
+    "测试66801935",
 ]
 
 print(f"[1] Creating trader  path={QMT_PATH}")
