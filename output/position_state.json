@@ -85,9 +85,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 1115.708, "action": "move_sl", "value": 1094.46,  "note": "GS 25% → SL to entry"},
-        {"condition": "price_gte", "price": 1136.956, "action": "move_sl", "value": 1115.708, "note": "GS 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 1158.204, "action": "move_sl", "value": 1136.956, "note": "GS 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 1115.708,
+          "action": "move_sl",
+          "value": 1094.46,
+          "note": "GS 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 1136.956,
+          "action": "move_sl",
+          "value": 1115.708,
+          "note": "GS 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 1158.204,
+          "action": "move_sl",
+          "value": 1136.956,
+          "note": "GS 75% \u2192 SL to 50%"
+        }
       ]
     },
     "BYBIT:LINKUSDC.P": {
@@ -110,9 +128,28 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 7.6526, "action": "partial_close", "fraction": 0.667, "value": 7.37121, "note": "LINK 25% → close 2/3, SL to entry for rest"},
-        {"condition": "price_gte", "price": 7.9340, "action": "move_sl", "value": 7.6526,  "note": "LINK 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 8.2154, "action": "move_sl", "value": 7.9340,  "note": "LINK 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 7.6526,
+          "action": "partial_close",
+          "fraction": 0.667,
+          "value": 7.37121,
+          "note": "LINK 25% \u2192 close 2/3, SL to entry for rest"
+        },
+        {
+          "condition": "price_gte",
+          "price": 7.934,
+          "action": "move_sl",
+          "value": 7.6526,
+          "note": "LINK 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 8.2154,
+          "action": "move_sl",
+          "value": 7.934,
+          "note": "LINK 75% \u2192 SL to 50%"
+        }
       ]
     },
     "BYBIT:SUIUSDC.P": {
@@ -135,9 +172,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 0.75819, "action": "move_sl", "value": 0.71819, "note": "SUI 25% → SL to entry"},
-        {"condition": "price_gte", "price": 0.79819, "action": "move_sl", "value": 0.75819, "note": "SUI 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 0.83819, "action": "move_sl", "value": 0.79819, "note": "SUI 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 0.75819,
+          "action": "move_sl",
+          "value": 0.71819,
+          "note": "SUI 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.79819,
+          "action": "move_sl",
+          "value": 0.75819,
+          "note": "SUI 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.83819,
+          "action": "move_sl",
+          "value": 0.79819,
+          "note": "SUI 75% \u2192 SL to 50%"
+        }
       ]
     },
     "OANDA:NZDUSD": {
@@ -160,9 +215,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 0.57129, "action": "move_sl", "value": 0.56429, "note": "NZDUSD 25% → SL to entry"},
-        {"condition": "price_gte", "price": 0.57829, "action": "move_sl", "value": 0.57129, "note": "NZDUSD 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 0.58529, "action": "move_sl", "value": 0.57829, "note": "NZDUSD 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 0.57129,
+          "action": "move_sl",
+          "value": 0.56429,
+          "note": "NZDUSD 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.57829,
+          "action": "move_sl",
+          "value": 0.57129,
+          "note": "NZDUSD 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.58529,
+          "action": "move_sl",
+          "value": 0.57829,
+          "note": "NZDUSD 75% \u2192 SL to 50%"
+        }
       ]
     },
     "OANDA:AUDUSD": {
@@ -185,9 +258,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 0.69797, "action": "move_sl", "value": 0.68997, "note": "AUDUSD 25% → SL to entry"},
-        {"condition": "price_gte", "price": 0.70597, "action": "move_sl", "value": 0.69797, "note": "AUDUSD 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 0.71397, "action": "move_sl", "value": 0.70597, "note": "AUDUSD 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 0.69797,
+          "action": "move_sl",
+          "value": 0.68997,
+          "note": "AUDUSD 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.70597,
+          "action": "move_sl",
+          "value": 0.69797,
+          "note": "AUDUSD 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.71397,
+          "action": "move_sl",
+          "value": 0.70597,
+          "note": "AUDUSD 75% \u2192 SL to 50%"
+        }
       ]
     },
     "OANDA:USDJPY": {
@@ -196,7 +287,7 @@
       "entry": 160.78,
       "tp": 154.18,
       "sl": 163.78,
-      "atr": 1.20,
+      "atr": 1.2,
       "size": 100000,
       "features": {},
       "bar_time": null,
@@ -210,9 +301,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_lte", "price": 158.38, "action": "move_sl", "value": 160.78, "note": "USDJPY 25% → SL to entry"},
-        {"condition": "price_lte", "price": 155.98, "action": "move_sl", "value": 158.38, "note": "USDJPY 50% → SL to 25%"},
-        {"condition": "price_lte", "price": 153.58, "action": "move_sl", "value": 155.98, "note": "USDJPY 75% → SL to 50%"}
+        {
+          "condition": "price_lte",
+          "price": 158.38,
+          "action": "move_sl",
+          "value": 160.78,
+          "note": "USDJPY 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_lte",
+          "price": 155.98,
+          "action": "move_sl",
+          "value": 158.38,
+          "note": "USDJPY 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_lte",
+          "price": 153.58,
+          "action": "move_sl",
+          "value": 155.98,
+          "note": "USDJPY 75% \u2192 SL to 50%"
+        }
       ]
     },
     "XYZ:GOLD": {
@@ -235,8 +344,20 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 4134.0, "action": "move_sl", "value": 4074.0, "note": "GOLD 50% → SL to 25% (25% already hit, SL at entry)"},
-        {"condition": "price_gte", "price": 4194.0, "action": "move_sl", "value": 4134.0, "note": "GOLD 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 4134.0,
+          "action": "move_sl",
+          "value": 4074.0,
+          "note": "GOLD 50% \u2192 SL to 25% (25% already hit, SL at entry)"
+        },
+        {
+          "condition": "price_gte",
+          "price": 4194.0,
+          "action": "move_sl",
+          "value": 4134.0,
+          "note": "GOLD 75% \u2192 SL to 50%"
+        }
       ]
     },
     "XYZ:SILVER": {
@@ -245,7 +366,7 @@
       "entry": 57.691,
       "tp": 64.091,
       "sl": 55.291,
-      "atr": 0.80,
+      "atr": 0.8,
       "size": 10000,
       "features": {},
       "bar_time": null,
@@ -259,9 +380,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 59.291, "action": "move_sl", "value": 57.691, "note": "SILVER 25% → SL to entry"},
-        {"condition": "price_gte", "price": 60.891, "action": "move_sl", "value": 59.291, "note": "SILVER 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 62.491, "action": "move_sl", "value": 60.891, "note": "SILVER 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 59.291,
+          "action": "move_sl",
+          "value": 57.691,
+          "note": "SILVER 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 60.891,
+          "action": "move_sl",
+          "value": 59.291,
+          "note": "SILVER 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 62.491,
+          "action": "move_sl",
+          "value": 60.891,
+          "note": "SILVER 75% \u2192 SL to 50%"
+        }
       ]
     },
     "XYZ:CL": {
@@ -270,7 +409,7 @@
       "entry": 70.107,
       "tp": 82.107,
       "sl": 65.607,
-      "atr": 1.50,
+      "atr": 1.5,
       "size": 10000,
       "features": {},
       "bar_time": null,
@@ -284,9 +423,27 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 73.107, "action": "move_sl", "value": 70.107, "note": "CL 25% → SL to entry"},
-        {"condition": "price_gte", "price": 76.107, "action": "move_sl", "value": 73.107, "note": "CL 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 79.107, "action": "move_sl", "value": 76.107, "note": "CL 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 73.107,
+          "action": "move_sl",
+          "value": 70.107,
+          "note": "CL 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 76.107,
+          "action": "move_sl",
+          "value": 73.107,
+          "note": "CL 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 79.107,
+          "action": "move_sl",
+          "value": 76.107,
+          "note": "CL 75% \u2192 SL to 50%"
+        }
       ]
     },
     "XYZ:BRENTOIL": {
@@ -295,7 +452,7 @@
       "entry": 73.648,
       "tp": 85.648,
       "sl": 69.148,
-      "atr": 1.50,
+      "atr": 1.5,
       "size": 10000,
       "features": {},
       "bar_time": null,
@@ -309,9 +466,70 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 76.648, "action": "move_sl", "value": 73.648, "note": "BRENTOIL 25% → SL to entry"},
-        {"condition": "price_gte", "price": 79.648, "action": "move_sl", "value": 76.648, "note": "BRENTOIL 50% → SL to 25%"},
-        {"condition": "price_gte", "price": 82.648, "action": "move_sl", "value": 79.648, "note": "BRENTOIL 75% → SL to 50%"}
+        {
+          "condition": "price_gte",
+          "price": 76.648,
+          "action": "move_sl",
+          "value": 73.648,
+          "note": "BRENTOIL 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 79.648,
+          "action": "move_sl",
+          "value": 76.648,
+          "note": "BRENTOIL 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 82.648,
+          "action": "move_sl",
+          "value": 79.648,
+          "note": "BRENTOIL 75% \u2192 SL to 50%"
+        }
+      ]
+    },
+    "OANDA:GBPUSD": {
+      "pair": "OANDA:GBPUSD",
+      "direction": "long",
+      "entry": 1.32521,
+      "tp": 1.3405,
+      "sl": 1.3183,
+      "atr": 0.0028,
+      "size": 10000,
+      "features": {},
+      "bar_time": "2026-06-29T09:37:37",
+      "open_time": "2026-06-29T09:37:37",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [
+        {
+          "condition": "price_gte",
+          "price": 1.33081,
+          "action": "move_sl",
+          "value": 1.32521,
+          "note": "GBPUSD 25% \u2192 SL to entry"
+        },
+        {
+          "condition": "price_gte",
+          "price": 1.33641,
+          "action": "move_sl",
+          "value": 1.33081,
+          "note": "GBPUSD 50% \u2192 SL to 25%"
+        },
+        {
+          "condition": "price_gte",
+          "price": 1.34201,
+          "action": "move_sl",
+          "value": 1.33641,
+          "note": "GBPUSD 75% \u2192 SL to 50%"
+        }
       ]
     }
   }
