@@ -110,7 +110,7 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {"condition": "price_gte", "price": 7.6526, "action": "move_sl", "value": 7.37121, "note": "LINK 25% → SL to entry"},
+        {"condition": "price_gte", "price": 7.6526, "action": "partial_close", "fraction": 0.667, "value": 7.37121, "note": "LINK 25% → close 2/3, SL to entry for rest"},
         {"condition": "price_gte", "price": 7.9340, "action": "move_sl", "value": 7.6526,  "note": "LINK 50% → SL to 25%"},
         {"condition": "price_gte", "price": 8.2154, "action": "move_sl", "value": 7.9340,  "note": "LINK 75% → SL to 50%"}
       ]

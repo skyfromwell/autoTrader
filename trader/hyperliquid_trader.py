@@ -114,6 +114,22 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
         return {"success": False, "error": str(e)}
 
 
+def partial_close_position(tv_symbol: str, fraction: float = 2/3) -> dict:
+    """Close a fraction of an open Hyperliquid position (default 2/3)."""
+    coin = _hl_coin(tv_symbol)
+    cmd = [_NODE, os.path.abspath(_JS_SCRIPT), coin, "--close", "--partial", str(round(fraction, 6))]
+    log.info(f"[HYPERLIQUID] partial close {coin} fraction={fraction:.3f}")
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=os.path.dirname(os.path.abspath(_JS_SCRIPT)),
+        )
+        return json.loads(result.stdout.strip() or "{}")
+    except Exception as e:
+        log.error(f"[HYPERLIQUID] partial close failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def close_position(tv_symbol: str) -> dict:
     """Close an open Hyperliquid position."""
     coin = _hl_coin(tv_symbol)

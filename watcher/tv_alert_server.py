@@ -37,6 +37,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close
+from trader.hyperliquid_trader import partial_close_position as hl_partial_close
 from trader.oanda_trader        import execute_trade as oanda_execute
 from trader.oanda_trader        import close_position as oanda_close
 from trader.trader              import execute_trade as alpaca_execute
@@ -103,9 +104,10 @@ def _broker_close(pair: str) -> None:
 
 class AlertPayload(BaseModel):
     pair:      str
-    action:    str                    # open_long | open_short | close | close_and_flip | move_sl
+    action:    str                    # open_long | open_short | close | close_and_flip | move_sl | partial_close
     direction: Optional[str] = None  # for close_and_flip: the new direction after close
-    value:     Optional[float] = None  # for move_sl: new SL price
+    value:     Optional[float] = None  # for move_sl / partial_close: new SL price
+    fraction:  float = 2/3            # for partial_close: portion to close (default 2/3)
     price:     Optional[float] = None  # current price (use {{close}} in TV)
     notional:  int = _NOTIONAL_DEFAULT
     note:      Optional[str] = None  # free-text from TV alert for logging
@@ -167,6 +169,27 @@ async def receive_alert(
                            size=1.0, features={})
         log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}")
         return {"ok": True, "action": action, "pair": pair, "new_direction": new_dir}
+
+    # ── partial_close ──────────────────────────────────────────────────────
+    if action == "partial_close":
+        fraction = payload.fraction
+        new_sl   = payload.value
+        trade    = manager.get_trade(pair)
+        if not trade:
+            raise HTTPException(404, f"No open position for {pair}")
+
+        p = _prefix(pair)
+        if p in _CRYPTO_PREFIXES:
+            hl_partial_close(pair, fraction)
+        else:
+            log.warning(f"[{pair}] partial_close only implemented for HL crypto")
+
+        if new_sl is not None:
+            manager.move_sl(pair, new_sl, reason=f"tv_partial_close_sl@{price}")
+            log.info(f"[TV→] ✅ Partial close {pair} fraction={fraction:.2f}, SL → {new_sl}")
+        else:
+            log.info(f"[TV→] ✅ Partial close {pair} fraction={fraction:.2f}")
+        return {"ok": True, "action": action, "pair": pair, "fraction": fraction, "new_sl": new_sl}
 
     # ── move_sl ────────────────────────────────────────────────────────────
     if action == "move_sl":
