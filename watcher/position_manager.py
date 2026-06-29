@@ -143,6 +143,7 @@ class PositionManager:
                       tp=tp, sl=sl, atr=atr, size=size,
                       features=features, bar_time=bar_time)
         self._trades[pair] = trade
+        self._save()
         return trade
 
     def close_trade(self, pair: str, reason: str, close_price: float) -> None:
