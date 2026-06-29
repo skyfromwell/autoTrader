@@ -40,6 +40,10 @@ for acct_id in ACCOUNT_IDS:
             working_acc = acc
             break
         time.sleep(1)
+    if asset and working_acc is None:
+        print("    All asset fields:")
+        for k, v in vars(asset).items():
+            print(f"      {k} = {v}")
     if working_acc:
         break
     print(f"    ✗ no data for '{acct_id}'")
