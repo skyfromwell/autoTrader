@@ -1,8 +1,8 @@
 {
   "sl_streaks": {
     "SZSE:000725": 0,
-    "BYBIT:SUIUSDC.P": 0,
-    "NYSE:LLY": 0
+    "NYSE:LLY": 0,
+    "BYBIT:HYPEUSDC.P": 0
   },
   "open_trades": {
     "NASDAQ:AAPL": {
@@ -23,7 +23,8 @@
       "protected_sl": null,
       "runner_active": false,
       "runner_regime": null,
-      "bars_since_close": 0
+      "bars_since_close": 0,
+      "price_triggers": []
     },
     "NYSE:CAT": {
       "pair": "NYSE:CAT",
@@ -43,7 +44,8 @@
       "protected_sl": null,
       "runner_active": true,
       "runner_regime": "CONTINUATION",
-      "bars_since_close": 0
+      "bars_since_close": 0,
+      "price_triggers": []
     },
     "NASDAQ:CSCO": {
       "pair": "NASDAQ:CSCO",
@@ -52,7 +54,7 @@
       "tp": 105.5191,
       "sl": 125.5905,
       "atr": 2.4147,
-      "size": 9928.46,
+      "size": 9928.460000000001,
       "features": {},
       "bar_time": null,
       "open_time": "2026-06-19T09:40:39",
@@ -63,14 +65,15 @@
       "protected_sl": null,
       "runner_active": false,
       "runner_regime": null,
-      "bars_since_close": 0
+      "bars_since_close": 0,
+      "price_triggers": []
     },
     "NYSE:GS": {
       "pair": "NYSE:GS",
       "direction": "long",
       "entry": 1094.46,
       "tp": 1159.0435,
-      "sl": 1051.964,
+      "sl": 1018.2182,
       "atr": 21.248,
       "size": 9850.14,
       "features": {},
@@ -84,85 +87,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 1115.708,
-          "action": "move_sl",
-          "value": 1094.46,
-          "note": "GS 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 1136.956,
-          "action": "move_sl",
-          "value": 1115.708,
-          "note": "GS 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 1158.204,
-          "action": "move_sl",
-          "value": 1136.956,
-          "note": "GS 75% \u2192 SL to 50%"
-        }
-      ]
-    },
-    "BYBIT:LINKUSDC.P": {
-      "pair": "BYBIT:LINKUSDC.P",
-      "direction": "long",
-      "entry": 7.37121,
-      "tp": 8.4968,
-      "sl": 6.9491,
-      "atr": 0.1407,
-      "size": 10000,
-      "features": {},
-      "bar_time": "2026-06-26T10:26:57",
-      "open_time": "2026-06-26T10:26:57",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 7.6526,
-          "action": "partial_close",
-          "fraction": 0.667,
-          "value": 7.37121,
-          "note": "LINK 25% \u2192 close 2/3, SL to entry for rest"
-        },
-        {
-          "condition": "price_gte",
-          "price": 7.934,
-          "action": "move_sl",
-          "value": 7.6526,
-          "note": "LINK 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 8.2154,
-          "action": "move_sl",
-          "value": 7.934,
-          "note": "LINK 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
     "BYBIT:SUIUSDC.P": {
       "pair": "BYBIT:SUIUSDC.P",
       "direction": "long",
-      "entry": 0.71819,
-      "tp": 0.87819,
-      "sl": 0.65819,
-      "atr": 0.02,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
+      "entry": 0.714,
+      "tp": 0.8481,
+      "sl": 0.6737,
+      "atr": 0.0153,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.471,
+        "f2_wt": 0.7412,
+        "f3_cci": 0.5736,
+        "f4_adx": 0.2509,
+        "f5_rsi9": 0.4905,
+        "ema_distance": -1.3445,
+        "pivot_slope_high": -0.5382,
+        "pivot_slope_low": -0.4534,
+        "upper_wick_ratio": 0.0706,
+        "lower_wick_ratio": 0.0706,
+        "tp_progress": 0.0047
+      },
+      "bar_time": "2026-06-22T12:19:36",
+      "open_time": "2026-06-22T12:19:37",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -171,41 +120,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 0.75819,
-          "action": "move_sl",
-          "value": 0.71819,
-          "note": "SUI 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.79819,
-          "action": "move_sl",
-          "value": 0.75819,
-          "note": "SUI 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.83819,
-          "action": "move_sl",
-          "value": 0.79819,
-          "note": "SUI 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
-    "OANDA:NZDUSD": {
-      "pair": "OANDA:NZDUSD",
+    "BYBIT:INJUSDC.P": {
+      "pair": "BYBIT:INJUSDC.P",
       "direction": "long",
-      "entry": 0.56429,
-      "tp": 0.58354,
-      "sl": 0.55554,
-      "atr": 0.0035,
-      "size": 10000,
-      "features": {},
-      "bar_time": "2026-06-26T10:30:18",
-      "open_time": "2026-06-26T10:30:18",
+      "entry": 4.771,
+      "tp": 5.8094,
+      "sl": 4.2785,
+      "atr": 0.1407,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.6204,
+        "f2_wt": 0.8147,
+        "f3_cci": 0.7186,
+        "f4_adx": 0.2746,
+        "f5_rsi9": 0.7288,
+        "ema_distance": 0.4734,
+        "pivot_slope_high": -1.0445,
+        "pivot_slope_low": -2.7605,
+        "upper_wick_ratio": 0.3478,
+        "lower_wick_ratio": 0.1863,
+        "tp_progress": 0.1177
+      },
+      "bar_time": "2026-06-26T10:27:12",
+      "open_time": "2026-06-26T10:27:12",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -214,41 +153,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 0.57129,
-          "action": "move_sl",
-          "value": 0.56429,
-          "note": "NZDUSD 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.57829,
-          "action": "move_sl",
-          "value": 0.57129,
-          "note": "NZDUSD 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.58529,
-          "action": "move_sl",
-          "value": 0.57829,
-          "note": "NZDUSD 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
-    "OANDA:AUDUSD": {
-      "pair": "OANDA:AUDUSD",
+    "COINBASE:GOLDUSDC.P": {
+      "pair": "COINBASE:GOLDUSDC.P",
       "direction": "long",
-      "entry": 0.68997,
-      "tp": 0.71197,
-      "sl": 0.67997,
-      "atr": 0.004,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
+      "entry": 4081.3,
+      "tp": 0.0,
+      "sl": 0.0,
+      "atr": 36.9372,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.5236,
+        "f2_wt": 0.889,
+        "f3_cci": 0.5514,
+        "f4_adx": 0.3327,
+        "f5_rsi9": 0.5928,
+        "ema_distance": -0.8012,
+        "pivot_slope_high": -2.3689,
+        "pivot_slope_low": -1.4782,
+        "upper_wick_ratio": 0.0762,
+        "lower_wick_ratio": 0.0857,
+        "tp_progress": 0.0109
+      },
+      "bar_time": "2026-06-26T10:30:33",
+      "open_time": "2026-06-26T10:30:33",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -257,84 +186,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 0.69797,
-          "action": "move_sl",
-          "value": 0.68997,
-          "note": "AUDUSD 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.70597,
-          "action": "move_sl",
-          "value": 0.69797,
-          "note": "AUDUSD 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 0.71397,
-          "action": "move_sl",
-          "value": 0.70597,
-          "note": "AUDUSD 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
-    "OANDA:USDJPY": {
-      "pair": "OANDA:USDJPY",
-      "direction": "short",
-      "entry": 160.78,
-      "tp": 154.18,
-      "sl": 163.78,
-      "atr": 1.2,
-      "size": 100000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_lte",
-          "price": 158.38,
-          "action": "move_sl",
-          "value": 160.78,
-          "note": "USDJPY 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_lte",
-          "price": 155.98,
-          "action": "move_sl",
-          "value": 158.38,
-          "note": "USDJPY 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_lte",
-          "price": 153.58,
-          "action": "move_sl",
-          "value": 155.98,
-          "note": "USDJPY 75% \u2192 SL to 50%"
-        }
-      ]
-    },
-    "XYZ:GOLD": {
-      "pair": "XYZ:GOLD",
+    "NYSE:LLY": {
+      "pair": "NYSE:LLY",
       "direction": "long",
-      "entry": 4014.0,
-      "tp": 4254.0,
-      "sl": 4014.0,
-      "atr": 30.0,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
+      "entry": 1213.13,
+      "tp": 0.0,
+      "sl": 0.0,
+      "atr": 25.3913,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.7637,
+        "f2_wt": 0.847,
+        "f3_cci": 0.7227,
+        "f4_adx": 0.3345,
+        "f5_rsi9": 0.8445,
+        "ema_distance": 4.3272,
+        "pivot_slope_high": -0.9344,
+        "pivot_slope_low": 0.2467,
+        "upper_wick_ratio": 0.0128,
+        "lower_wick_ratio": 0.2226,
+        "tp_progress": 0.0
+      },
+      "bar_time": "2026-06-26T12:45:13",
+      "open_time": "2026-06-26T12:45:13",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -343,34 +219,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 4134.0,
-          "action": "move_sl",
-          "value": 4074.0,
-          "note": "GOLD 50% \u2192 SL to 25% (25% already hit, SL at entry)"
-        },
-        {
-          "condition": "price_gte",
-          "price": 4194.0,
-          "action": "move_sl",
-          "value": 4134.0,
-          "note": "GOLD 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
-    "XYZ:SILVER": {
-      "pair": "XYZ:SILVER",
+    "COINBASE:SILVERUSDC.P": {
+      "pair": "COINBASE:SILVERUSDC.P",
       "direction": "long",
-      "entry": 57.691,
-      "tp": 64.091,
-      "sl": 55.291,
-      "atr": 0.8,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
+      "entry": 4071.5,
+      "tp": 0.0,
+      "sl": 0.0,
+      "atr": 38.0515,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.5064,
+        "f2_wt": 0.8674,
+        "f3_cci": 0.5322,
+        "f4_adx": 0.3327,
+        "f5_rsi9": 0.5637,
+        "ema_distance": -1.0252,
+        "pivot_slope_high": -2.2995,
+        "pivot_slope_low": -1.4349,
+        "upper_wick_ratio": 0.0307,
+        "lower_wick_ratio": 0.2567,
+        "tp_progress": 0.0109
+      },
+      "bar_time": "2026-06-26T12:56:20",
+      "open_time": "2026-06-26T12:56:21",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -379,41 +252,31 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 59.291,
-          "action": "move_sl",
-          "value": 57.691,
-          "note": "SILVER 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 60.891,
-          "action": "move_sl",
-          "value": 59.291,
-          "note": "SILVER 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 62.491,
-          "action": "move_sl",
-          "value": 60.891,
-          "note": "SILVER 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
-    "XYZ:CL": {
-      "pair": "XYZ:CL",
+    "COINBASE:RENDERUSD": {
+      "pair": "COINBASE:RENDERUSD",
       "direction": "long",
-      "entry": 70.107,
-      "tp": 82.107,
-      "sl": 65.607,
-      "atr": 1.5,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
+      "entry": 1.601,
+      "tp": 2.0069,
+      "sl": 1.4639,
+      "atr": 0.0485,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.5463,
+        "f2_wt": 0.8197,
+        "f3_cci": 0.6423,
+        "f4_adx": 0.2762,
+        "f5_rsi9": 0.6076,
+        "ema_distance": -0.1341,
+        "pivot_slope_high": -1.3304,
+        "pivot_slope_low": 0.1856,
+        "upper_wick_ratio": 0.6757,
+        "lower_wick_ratio": 0.0,
+        "tp_progress": 0.0658
+      },
+      "bar_time": "2026-06-26T22:31:34",
+      "open_time": "2026-06-26T22:31:34",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -422,82 +285,29 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 73.107,
-          "action": "move_sl",
-          "value": 70.107,
-          "note": "CL 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 76.107,
-          "action": "move_sl",
-          "value": 73.107,
-          "note": "CL 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 79.107,
-          "action": "move_sl",
-          "value": 76.107,
-          "note": "CL 75% \u2192 SL to 50%"
-        }
-      ]
-    },
-    "XYZ:BRENTOIL": {
-      "pair": "XYZ:BRENTOIL",
-      "direction": "long",
-      "entry": 73.648,
-      "tp": 85.648,
-      "sl": 69.148,
-      "atr": 1.5,
-      "size": 10000,
-      "features": {},
-      "bar_time": null,
-      "open_time": null,
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 76.648,
-          "action": "move_sl",
-          "value": 73.648,
-          "note": "BRENTOIL 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 79.648,
-          "action": "move_sl",
-          "value": 76.648,
-          "note": "BRENTOIL 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 82.648,
-          "action": "move_sl",
-          "value": 79.648,
-          "note": "BRENTOIL 75% \u2192 SL to 50%"
-        }
-      ]
+      "price_triggers": []
     },
     "OANDA:GBPUSD": {
       "pair": "OANDA:GBPUSD",
       "direction": "long",
-      "entry": 1.32521,
-      "tp": 1.3405,
-      "sl": 1.3183,
-      "atr": 0.0028,
-      "size": 10000,
-      "features": {},
+      "entry": 1.3253,
+      "tp": 1.3408,
+      "sl": 1.3185,
+      "atr": 0.0027,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.6366,
+        "f2_wt": 0.7424,
+        "f3_cci": 0.7297,
+        "f4_adx": 0.2606,
+        "f5_rsi9": 0.7431,
+        "ema_distance": 0.7632,
+        "pivot_slope_high": 0.429,
+        "pivot_slope_low": 0.7489,
+        "upper_wick_ratio": 0.1263,
+        "lower_wick_ratio": 0.4,
+        "tp_progress": 0.0372
+      },
       "bar_time": "2026-06-29T09:37:37",
       "open_time": "2026-06-29T09:37:37",
       "closed": false,
@@ -511,23 +321,23 @@
       "price_triggers": [
         {
           "condition": "price_gte",
-          "price": 1.33081,
+          "price": 1.3307,
           "action": "move_sl",
-          "value": 1.32521,
+          "value": 1.3253,
           "note": "GBPUSD 25% \u2192 SL to entry"
         },
         {
           "condition": "price_gte",
-          "price": 1.33641,
+          "price": 1.3361,
           "action": "move_sl",
-          "value": 1.33081,
+          "value": 1.3307,
           "note": "GBPUSD 50% \u2192 SL to 25%"
         },
         {
           "condition": "price_gte",
-          "price": 1.34201,
+          "price": 1.3415,
           "action": "move_sl",
-          "value": 1.33641,
+          "value": 1.3361,
           "note": "GBPUSD 75% \u2192 SL to 50%"
         }
       ]
