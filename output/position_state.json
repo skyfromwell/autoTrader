@@ -4,6 +4,71 @@
     "NYSE:LLY": 0,
     "BYBIT:HYPEUSDC.P": 0
   },
+  "symbol_state": {
+    "PIONEX:BRENTOILUSDT.P": {
+      "last_pull": "2026-06-29T22:21:13"
+    },
+    "BLOFIN:WTIOILUSDT.P": {
+      "last_pull": "2026-06-29T22:21:30"
+    },
+    "OANDA:EURUSD": {
+      "last_pull": "2026-06-29T22:15:58"
+    },
+    "OANDA:GBPUSD": {
+      "last_pull": "2026-06-29T22:16:15"
+    },
+    "BYBIT:ETHUSDC.P": {
+      "last_pull": "2026-06-29T22:16:50"
+    },
+    "BYBIT:LINKUSDC.P": {
+      "last_pull": "2026-06-29T22:17:08"
+    },
+    "BYBIT:INJUSDC.P": {
+      "last_pull": "2026-06-29T22:17:25"
+    },
+    "BYBIT:XRPUSDC.P": {
+      "last_pull": "2026-06-29T22:17:43"
+    },
+    "COINBASE:RENDERUSD": {
+      "last_pull": "2026-06-29T22:18:00"
+    },
+    "BYBIT:SUIUSDC.P": {
+      "last_pull": "2026-06-29T22:18:18"
+    },
+    "BYBIT:BTCUSDC.P": {
+      "last_pull": "2026-06-29T22:18:35"
+    },
+    "BYBIT:HYPEUSDC.P": {
+      "last_pull": "2026-06-29T22:18:53"
+    },
+    "BYBIT:SOLUSDC.P": {
+      "last_pull": "2026-06-29T22:19:10"
+    },
+    "BYBIT:ONDOUSDC.P": {
+      "last_pull": "2026-06-29T22:19:28"
+    },
+    "OANDA:USDJPY": {
+      "last_pull": "2026-06-29T22:19:45"
+    },
+    "OANDA:AUDUSD": {
+      "last_pull": "2026-06-29T22:20:03"
+    },
+    "OANDA:NZDUSD": {
+      "last_pull": "2026-06-29T22:20:20"
+    },
+    "COINBASE:GOLDUSDC.P": {
+      "last_pull": "2026-06-29T22:20:38"
+    },
+    "COINBASE:SILVERUSDC.P": {
+      "last_pull": "2026-06-29T22:20:55"
+    },
+    "SZSE:000725": {
+      "last_pull": "2026-06-29T22:16:33"
+    },
+    "SZSE:002415": {
+      "last_pull": "2026-06-29T22:21:48"
+    }
+  },
   "open_trades": {
     "NASDAQ:AAPL": {
       "pair": "NASDAQ:AAPL",
