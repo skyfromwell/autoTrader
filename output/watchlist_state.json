@@ -29,7 +29,18 @@
     "COINBASE:SILVERUSDC.P",
     "PIONEX:BRENTOILUSDT.P",
     "BLOFIN:WTIOILUSDT.P",
-    "SZSE:002415"
+    "SZSE:002415",
+    "SSE:600028",
+    "SSE:601628",
+    "SSE:600030",
+    "SSE:601688",
+    "SSE:600111",
+    "SSE:600346",
+    "SSE:601211",
+    "SSE:601229",
+    "SSE:600460",
+    "SZSE:000538",
+    "SZSE:002493"
   ],
   "updated_at": "2026-06-18T17:15:00"
 }
