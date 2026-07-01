@@ -347,65 +347,10 @@
       "bars_since_close": 0,
       "price_triggers": []
     },
-    "OANDA:GBPUSD": {
-      "pair": "OANDA:GBPUSD",
-      "direction": "long",
-      "entry": 1.3253,
-      "tp": 1.3408,
-      "sl": 1.3185,
-      "atr": 0.0027,
-      "size": 1.0,
-      "features": {
-        "f1_rsi14": 0.6366,
-        "f2_wt": 0.7424,
-        "f3_cci": 0.7297,
-        "f4_adx": 0.2606,
-        "f5_rsi9": 0.7431,
-        "ema_distance": 0.7632,
-        "pivot_slope_high": 0.429,
-        "pivot_slope_low": 0.7489,
-        "upper_wick_ratio": 0.1263,
-        "lower_wick_ratio": 0.4,
-        "tp_progress": 0.0372
-      },
-      "bar_time": "2026-06-29T09:37:37",
-      "open_time": "2026-06-29T09:37:37",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 1.3307,
-          "action": "move_sl",
-          "value": 1.3253,
-          "note": "GBPUSD 25% \u2192 SL to entry"
-        },
-        {
-          "condition": "price_gte",
-          "price": 1.3361,
-          "action": "move_sl",
-          "value": 1.3307,
-          "note": "GBPUSD 50% \u2192 SL to 25%"
-        },
-        {
-          "condition": "price_gte",
-          "price": 1.3415,
-          "action": "move_sl",
-          "value": 1.3361,
-          "note": "GBPUSD 75% \u2192 SL to 50%"
-        }
-      ]
-    },
     "OANDA:AUDUSD": {
       "pair": "OANDA:AUDUSD",
       "direction": "long",
-      "entry": 0.69217,
+      "entry": 0.68921,
       "tp": 0.7027,
       "sl": 0.6874,
       "atr": 0.0019,
@@ -438,7 +383,7 @@
     "OANDA:NZDUSD": {
       "pair": "OANDA:NZDUSD",
       "direction": "long",
-      "entry": 0.56834,
+      "entry": 0.56714,
       "tp": 0.5768,
       "sl": 0.5645,
       "atr": 0.0015,
@@ -491,6 +436,27 @@
       },
       "bar_time": "2026-07-01T12:57:15",
       "open_time": "2026-07-01T12:57:15",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "OANDA:EURUSD": {
+      "pair": "OANDA:EURUSD",
+      "direction": "long",
+      "entry": 1.13766,
+      "tp": null,
+      "sl": null,
+      "atr": 0.0023,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-01T13:38:41",
+      "open_time": "2026-07-01T13:38:41",
       "closed": false,
       "close_price": null,
       "close_reason": null,
