@@ -59,18 +59,20 @@ def main():
         symbol   = tv_sym.split(":")[-1]
 
         try:
-            if action == "open_long":
-                # Check not already in position
+            if action in ("open_long", "open_short"):
+                direction = "long" if action == "open_long" else "short"
+
+                # Check not already in same-direction position
                 try:
                     existing = client.get_open_position(symbol)
-                    if existing:
-                        log.info(f"[{tv_sym}] already has position — skipping open")
+                    if existing and existing.side == direction:
+                        log.info(f"[{tv_sym}] already {direction} — skipping open")
                         executed.append(order)
                         continue
                 except Exception:
                     pass  # no existing position, proceed
 
-                ok = alpaca_execute(tv_sym, "long", notional=notional)
+                ok = alpaca_execute(tv_sym, direction, notional=notional)
                 if ok:
                     time.sleep(4)  # wait for fill
                     entry = 0.0
@@ -80,11 +82,11 @@ def main():
                     except Exception:
                         pass
                     manager.open_trade(
-                        pair=tv_sym, direction="long", entry=entry,
+                        pair=tv_sym, direction=direction, entry=entry,
                         tp=None, sl=None, atr=0.0, size=1.0, features={},
                         bar_time=datetime.now().isoformat(timespec="seconds"),
                     )
-                    log.info(f"[{tv_sym}] ✅ OPENED LONG  entry={entry:.2f}  notional=${notional:,}")
+                    log.info(f"[{tv_sym}] ✅ OPENED {direction.upper()}  entry={entry:.2f}  notional=${notional:,}")
                     executed.append(order)
                 else:
                     log.error(f"[{tv_sym}] order placement failed")
