@@ -383,7 +383,7 @@
     "OANDA:NZDUSD": {
       "pair": "OANDA:NZDUSD",
       "direction": "long",
-      "entry": 0.56714,
+      "entry": 0.56722,
       "tp": 0.5768,
       "sl": 0.5645,
       "atr": 0.0015,
@@ -449,7 +449,7 @@
     "OANDA:EURUSD": {
       "pair": "OANDA:EURUSD",
       "direction": "long",
-      "entry": 1.13766,
+      "entry": 1.13762,
       "tp": null,
       "sl": null,
       "atr": 0.0023,
