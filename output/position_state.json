@@ -6,67 +6,100 @@
   },
   "symbol_state": {
     "PIONEX:BRENTOILUSDT.P": {
-      "last_pull": "2026-06-29T22:21:13"
+      "last_pull": "2026-07-01T06:03:05"
     },
     "BLOFIN:WTIOILUSDT.P": {
-      "last_pull": "2026-06-29T22:21:30"
+      "last_pull": "2026-07-01T06:14:12"
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-06-29T22:15:58"
+      "last_pull": "2026-07-01T05:42:43"
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-06-29T22:16:15"
+      "last_pull": "2026-07-01T05:43:01"
     },
     "BYBIT:ETHUSDC.P": {
-      "last_pull": "2026-06-29T22:16:50"
+      "last_pull": "2026-07-01T05:43:19"
     },
     "BYBIT:LINKUSDC.P": {
-      "last_pull": "2026-06-29T22:17:08"
+      "last_pull": "2026-07-01T05:43:37"
     },
     "BYBIT:INJUSDC.P": {
-      "last_pull": "2026-06-29T22:17:25"
+      "last_pull": "2026-07-01T05:43:55"
     },
     "BYBIT:XRPUSDC.P": {
-      "last_pull": "2026-06-29T22:17:43"
+      "last_pull": "2026-07-01T05:44:13"
     },
     "COINBASE:RENDERUSD": {
-      "last_pull": "2026-06-29T22:18:00"
+      "last_pull": "2026-07-01T05:44:31"
     },
     "BYBIT:SUIUSDC.P": {
-      "last_pull": "2026-06-29T22:18:18"
+      "last_pull": "2026-07-01T05:44:49",
+      "last_signal": "2026-06-30T10:37:44",
+      "last_signal_val": 1
     },
     "BYBIT:BTCUSDC.P": {
-      "last_pull": "2026-06-29T22:18:35"
+      "last_pull": "2026-07-01T05:45:07"
     },
     "BYBIT:HYPEUSDC.P": {
-      "last_pull": "2026-06-29T22:18:53"
+      "last_pull": "2026-07-01T06:00:41"
     },
     "BYBIT:SOLUSDC.P": {
-      "last_pull": "2026-06-29T22:19:10"
+      "last_pull": "2026-07-01T06:00:59"
     },
     "BYBIT:ONDOUSDC.P": {
-      "last_pull": "2026-06-29T22:19:28"
+      "last_pull": "2026-07-01T06:01:17"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-06-29T22:19:45"
+      "last_pull": "2026-07-01T06:01:35"
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-06-29T22:20:03"
+      "last_pull": "2026-07-01T06:01:53",
+      "last_signal": "2026-06-30T08:13:01",
+      "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-06-29T22:20:20"
+      "last_pull": "2026-07-01T06:02:11",
+      "last_signal": "2026-06-30T08:13:19",
+      "last_signal_val": 1
     },
     "COINBASE:GOLDUSDC.P": {
-      "last_pull": "2026-06-29T22:20:38"
+      "last_pull": "2026-07-01T06:02:29"
     },
     "COINBASE:SILVERUSDC.P": {
-      "last_pull": "2026-06-29T22:20:55"
+      "last_pull": "2026-07-01T06:02:47"
     },
     "SZSE:000725": {
       "last_pull": "2026-06-29T22:16:33"
     },
     "SZSE:002415": {
       "last_pull": "2026-06-29T22:21:48"
+    },
+    "NYSE:LLY": {
+      "last_pull": "2026-06-30T10:32:20"
+    },
+    "NYSE:DELL": {
+      "last_pull": "2026-06-30T10:32:38"
+    },
+    "NYSE:CAT": {
+      "last_pull": "2026-06-30T10:32:55"
+    },
+    "NYSE:KO": {
+      "last_pull": "2026-06-30T10:33:13"
+    },
+    "NYSE:GS": {
+      "last_pull": "2026-06-30T10:33:30"
+    },
+    "NYSE:MS": {
+      "last_pull": "2026-06-30T10:33:59"
+    },
+    "NYSE:HPE": {
+      "last_pull": "2026-06-30T10:34:17"
+    },
+    "NASDAQ:CSCO": {
+      "last_pull": "2026-06-30T10:34:35"
+    },
+    "NASDAQ:AAPL": {
+      "last_pull": "2026-06-30T10:34:52"
     }
   },
   "open_trades": {
@@ -94,11 +127,11 @@
     "NYSE:CAT": {
       "pair": "NYSE:CAT",
       "direction": "long",
-      "entry": 957.915,
+      "entry": 1001.54,
       "tp": 1030.6402,
       "sl": 891.7099,
       "atr": 22.0555,
-      "size": 9579.15,
+      "size": 9013.86,
       "features": {},
       "bar_time": null,
       "open_time": "2026-06-19T09:40:16",
@@ -187,39 +220,6 @@
       "bars_since_close": 0,
       "price_triggers": []
     },
-    "BYBIT:INJUSDC.P": {
-      "pair": "BYBIT:INJUSDC.P",
-      "direction": "long",
-      "entry": 4.771,
-      "tp": 5.8094,
-      "sl": 4.2785,
-      "atr": 0.1407,
-      "size": 1.0,
-      "features": {
-        "f1_rsi14": 0.6204,
-        "f2_wt": 0.8147,
-        "f3_cci": 0.7186,
-        "f4_adx": 0.2746,
-        "f5_rsi9": 0.7288,
-        "ema_distance": 0.4734,
-        "pivot_slope_high": -1.0445,
-        "pivot_slope_low": -2.7605,
-        "upper_wick_ratio": 0.3478,
-        "lower_wick_ratio": 0.1863,
-        "tp_progress": 0.1177
-      },
-      "bar_time": "2026-06-26T10:27:12",
-      "open_time": "2026-06-26T10:27:12",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
-    },
     "COINBASE:GOLDUSDC.P": {
       "pair": "COINBASE:GOLDUSDC.P",
       "direction": "long",
@@ -256,11 +256,11 @@
     "NYSE:LLY": {
       "pair": "NYSE:LLY",
       "direction": "long",
-      "entry": 1213.13,
+      "entry": 1181.6,
       "tp": 0.0,
       "sl": 0.0,
       "atr": 25.3913,
-      "size": 1.0,
+      "size": 9452.8,
       "features": {
         "f1_rsi14": 0.7637,
         "f2_wt": 0.847,
@@ -309,39 +309,6 @@
       },
       "bar_time": "2026-06-26T12:56:20",
       "open_time": "2026-06-26T12:56:21",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
-    },
-    "COINBASE:RENDERUSD": {
-      "pair": "COINBASE:RENDERUSD",
-      "direction": "long",
-      "entry": 1.601,
-      "tp": 2.0069,
-      "sl": 1.4639,
-      "atr": 0.0485,
-      "size": 1.0,
-      "features": {
-        "f1_rsi14": 0.5463,
-        "f2_wt": 0.8197,
-        "f3_cci": 0.6423,
-        "f4_adx": 0.2762,
-        "f5_rsi9": 0.6076,
-        "ema_distance": -0.1341,
-        "pivot_slope_high": -1.3304,
-        "pivot_slope_low": 0.1856,
-        "upper_wick_ratio": 0.6757,
-        "lower_wick_ratio": 0.0,
-        "tp_progress": 0.0658
-      },
-      "bar_time": "2026-06-26T22:31:34",
-      "open_time": "2026-06-26T22:31:34",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -406,6 +373,72 @@
           "note": "GBPUSD 75% \u2192 SL to 50%"
         }
       ]
+    },
+    "OANDA:AUDUSD": {
+      "pair": "OANDA:AUDUSD",
+      "direction": "long",
+      "entry": 0.69217,
+      "tp": 0.7027,
+      "sl": 0.6874,
+      "atr": 0.0019,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.5696,
+        "f2_wt": 0.8389,
+        "f3_cci": 0.695,
+        "f4_adx": 0.3599,
+        "f5_rsi9": 0.6651,
+        "ema_distance": -0.5754,
+        "pivot_slope_high": -0.6065,
+        "pivot_slope_low": -0.2614,
+        "upper_wick_ratio": 0.18,
+        "lower_wick_ratio": 0.0,
+        "tp_progress": 0.077
+      },
+      "bar_time": "2026-06-30T08:13:01",
+      "open_time": "2026-06-30T08:13:01",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "OANDA:NZDUSD": {
+      "pair": "OANDA:NZDUSD",
+      "direction": "long",
+      "entry": 0.56834,
+      "tp": 0.5768,
+      "sl": 0.5645,
+      "atr": 0.0015,
+      "size": 1.0,
+      "features": {
+        "f1_rsi14": 0.6398,
+        "f2_wt": 0.8741,
+        "f3_cci": 0.901,
+        "f4_adx": 0.3266,
+        "f5_rsi9": 0.7734,
+        "ema_distance": -0.1099,
+        "pivot_slope_high": -0.084,
+        "pivot_slope_low": 0.2909,
+        "upper_wick_ratio": 0.2244,
+        "lower_wick_ratio": 0.0192,
+        "tp_progress": 0.0823
+      },
+      "bar_time": "2026-06-30T08:13:19",
+      "open_time": "2026-06-30T08:13:19",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
     }
   }
 }
