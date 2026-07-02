@@ -38,7 +38,9 @@ from typing import Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -71,6 +73,13 @@ _VALID_TIMEFRAMES  = {"30", "60", "240", "D"}
 
 app     = FastAPI(title="TV Alert Webhook")
 manager = PositionManager()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    body = await request.body()
+    log.error(f"422 validation error | body={body!r} | errors={exc.errors()}")
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -288,11 +297,23 @@ async def trigger_execute_queue(x_tv_secret: Optional[str] = Header(None),
 
 @app.post("/alert")
 async def receive_alert(
-    payload:     AlertPayload,
+    request:     Request,
     x_tv_secret: Optional[str] = Header(None),
     secret:      Optional[str] = Query(None),
 ):
     _verify(x_tv_secret, secret)
+    body = await request.body()
+    try:
+        data = json.loads(body)
+    except Exception:
+        log.error(f"Non-JSON body received: {body!r}")
+        raise HTTPException(400, "Expected JSON body")
+    log.info(f"Alert received: {data}")
+    try:
+        payload = AlertPayload(**data)
+    except Exception as e:
+        log.error(f"Payload validation failed: {e}  data={data}")
+        raise HTTPException(422, str(e))
 
     pair     = payload.pair.upper()
     price    = payload.price
