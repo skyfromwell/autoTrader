@@ -625,6 +625,48 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": []
+    },
+    "XYZ:CL": {
+      "pair": "XYZ:CL",
+      "entry": 68.684,
+      "tp": 90.6072,
+      "sl": 60.4628,
+      "atr": 2.7404,
+      "direction": "long",
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T16:25:43",
+      "open_time": "2026-07-02T16:25:43",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "XYZ:BRENTOIL": {
+      "pair": "XYZ:BRENTOIL",
+      "entry": 71.5846,
+      "tp": 93.5454,
+      "sl": 63.3493,
+      "atr": 2.7451,
+      "direction": "long",
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T16:25:43",
+      "open_time": "2026-07-02T16:25:43",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
     }
   }
 }
