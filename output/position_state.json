@@ -446,6 +446,27 @@
       "bars_since_close": 0,
       "price_triggers": []
     },
+    "BYBIT:LINKUSDC.P": {
+      "pair": "BYBIT:LINKUSDC.P",
+      "direction": "long",
+      "entry": 7.37121,
+      "tp": null,
+      "sl": null,
+      "atr": 0.0,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T00:00:00",
+      "open_time": "2026-07-02T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
     "OANDA:EURUSD": {
       "pair": "OANDA:EURUSD",
       "direction": "long",
