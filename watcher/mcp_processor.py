@@ -23,7 +23,7 @@ from watcher.position_manager  import PositionManager
 from trader.trader             import execute_trade as alpaca_execute
 from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
-from trader.hyperliquid_trader import close_position as hl_close, _hl_coin, _hl_post
+from trader.hyperliquid_trader import close_position as hl_close, partial_close_position as hl_partial_close, _hl_coin, _hl_post
 from trader.xyz_trader         import move_sl as xyz_move_sl
 from trader.xyz_trader         import execute_trade as xyz_execute
 from trader.xyz_trader         import close_position as xyz_close
@@ -246,6 +246,14 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
             manager.open_trade(pair=pair, direction="short", entry=mark_price,
                                tp=None, sl=None, atr=trade.atr, size=1.0, features={})
             log.info(f"[{pair}] ✅ Flipped to SHORT at {mark_price} notional=${notional:,}")
+        elif action == "partial_close":
+            fraction = float(trig.get("fraction", 0.5))
+            prefix = pair.split(":")[0].upper()
+            if prefix == "BYBIT":
+                hl_partial_close(pair, fraction=fraction)
+            else:
+                log.warning(f"[{pair}] partial_close trigger not supported for {prefix}")
+            log.info(f"[{pair}] 🎯 PRICE TRIGGER partial_close {fraction*100:.0f}% — {cond}@{level}  {note}")
         fired.append(i)
 
     for i in reversed(fired):
