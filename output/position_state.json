@@ -12,7 +12,7 @@
       "last_pull": "2026-07-02T09:30:00"
     },
     "BLOFIN:WTIOILUSDT.P": {
-      "last_pull": "2026-07-02T09:25:53"
+      "last_pull": "2026-07-02T19:38:14"
     },
     "OANDA:EURUSD": {
       "last_pull": "2026-07-02T08:07:34",
@@ -23,38 +23,38 @@
       "last_pull": "2026-07-02T08:07:52"
     },
     "BYBIT:ETHUSDC.P": {
-      "last_pull": "2026-07-02T09:26:29"
+      "last_pull": "2026-07-02T19:38:50"
     },
     "BYBIT:LINKUSDC.P": {
-      "last_pull": "2026-07-02T09:27:23"
+      "last_pull": "2026-07-02T19:39:46"
     },
     "BYBIT:INJUSDC.P": {
-      "last_pull": "2026-07-02T09:27:05"
+      "last_pull": "2026-07-02T19:39:28"
     },
     "BYBIT:XRPUSDC.P": {
-      "last_pull": "2026-07-02T09:28:48",
+      "last_pull": "2026-07-02T19:40:58",
       "last_signal": "2026-07-02T07:54:48",
       "last_signal_val": 1
     },
     "COINBASE:RENDERUSD": {
-      "last_pull": "2026-07-02T09:29:24"
+      "last_pull": "2026-07-02T19:41:34"
     },
     "BYBIT:SUIUSDC.P": {
-      "last_pull": "2026-07-02T09:28:30",
+      "last_pull": "2026-07-02T19:40:40",
       "last_signal": "2026-06-30T10:37:44",
       "last_signal_val": 1
     },
     "BYBIT:BTCUSDC.P": {
-      "last_pull": "2026-07-02T09:26:11"
+      "last_pull": "2026-07-02T19:38:32"
     },
     "BYBIT:HYPEUSDC.P": {
-      "last_pull": "2026-07-02T09:26:47"
+      "last_pull": "2026-07-02T19:39:10"
     },
     "BYBIT:SOLUSDC.P": {
-      "last_pull": "2026-07-02T09:28:11"
+      "last_pull": "2026-07-02T19:40:22"
     },
     "BYBIT:ONDOUSDC.P": {
-      "last_pull": "2026-07-02T09:27:41"
+      "last_pull": "2026-07-02T19:40:04"
     },
     "OANDA:USDJPY": {
       "last_pull": "2026-07-02T08:08:41"
@@ -70,12 +70,12 @@
       "last_signal_val": 1
     },
     "COINBASE:GOLDUSDC.P": {
-      "last_pull": "2026-07-02T09:29:06",
+      "last_pull": "2026-07-02T19:41:16",
       "last_signal": "2026-07-02T07:55:08",
       "last_signal_val": 1
     },
     "COINBASE:SILVERUSDC.P": {
-      "last_pull": "2026-07-02T09:29:42"
+      "last_pull": "2026-07-02T19:41:52"
     },
     "SZSE:000725": {
       "last_pull": "2026-06-29T22:16:33"
@@ -333,34 +333,13 @@
       "bars_since_close": 0,
       "price_triggers": []
     },
-    "COINBASE:GOLDUSDC.P": {
-      "pair": "COINBASE:GOLDUSDC.P",
-      "direction": "long",
-      "entry": 4122.51,
-      "tp": 4790.57,
-      "sl": 3871.99,
-      "atr": 83.5071,
-      "size": 1.0,
-      "features": {},
-      "bar_time": "2026-07-02T00:00:00",
-      "open_time": "2026-07-02T00:00:00",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
-    },
     "COINBASE:SILVERUSDC.P": {
       "pair": "COINBASE:SILVERUSDC.P",
       "direction": "long",
-      "entry": 62.0745,
-      "tp": 83.6337,
-      "sl": 53.9898,
-      "atr": 2.6949,
+      "entry": 4071.5,
+      "tp": 0.0,
+      "sl": 0.0,
+      "atr": 38.0515,
       "size": 1.0,
       "features": {
         "f1_rsi14": 0.5064,
@@ -616,48 +595,6 @@
       },
       "bar_time": "2026-07-02T08:07:34",
       "open_time": "2026-07-02T08:07:34",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
-    },
-    "XYZ:CL": {
-      "pair": "XYZ:CL",
-      "entry": 68.623,
-      "tp": 90.5462,
-      "sl": 60.4018,
-      "atr": 2.7404,
-      "direction": "long",
-      "size": 1.0,
-      "features": {},
-      "bar_time": "2026-07-02T16:25:43",
-      "open_time": "2026-07-02T16:25:43",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
-    },
-    "XYZ:BRENTOIL": {
-      "pair": "XYZ:BRENTOIL",
-      "entry": 71.5846,
-      "tp": 93.5454,
-      "sl": 63.3493,
-      "atr": 2.7451,
-      "direction": "long",
-      "size": 1.0,
-      "features": {},
-      "bar_time": "2026-07-02T16:25:43",
-      "open_time": "2026-07-02T16:25:43",
       "closed": false,
       "close_price": null,
       "close_reason": null,
