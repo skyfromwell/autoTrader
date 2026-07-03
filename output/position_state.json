@@ -224,6 +224,12 @@
     },
     "SZSE:002493": {
       "last_pull": "2026-07-02T22:13:59"
+    },
+    "COINBASE:XLMUSDC.P": {
+      "last_pull": "2026-07-03T14:03:03"
+    },
+    "COINBASE:HBARUSDC.P": {
+      "last_pull": "2026-07-03T14:03:03"
     }
   },
   "open_trades": {
