@@ -9,195 +9,221 @@
   },
   "symbol_state": {
     "PIONEX:BRENTOILUSDT.P": {
-      "last_pull": "2026-07-02T19:44:38"
+      "last_pull": "2026-07-03T09:43:47"
     },
     "BLOFIN:WTIOILUSDT.P": {
-      "last_pull": "2026-07-02T19:38:14"
+      "last_pull": "2026-07-03T08:28:31"
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-07-02T19:43:26",
+      "last_pull": "2026-07-03T09:30:51",
       "last_signal": "2026-07-02T08:07:34",
       "last_signal_val": 1
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-07-02T19:43:44"
+      "last_pull": "2026-07-03T09:31:09"
     },
     "BYBIT:ETHUSDC.P": {
-      "last_pull": "2026-07-02T19:38:50"
+      "last_pull": "2026-07-03T08:29:07"
     },
     "BYBIT:LINKUSDC.P": {
-      "last_pull": "2026-07-02T19:39:46"
+      "last_pull": "2026-07-03T08:30:01"
     },
     "BYBIT:INJUSDC.P": {
-      "last_pull": "2026-07-02T19:39:28"
+      "last_pull": "2026-07-03T08:29:43"
     },
     "BYBIT:XRPUSDC.P": {
-      "last_pull": "2026-07-02T19:40:58",
+      "last_pull": "2026-07-03T08:34:08",
       "last_signal": "2026-07-02T07:54:48",
       "last_signal_val": 1
     },
     "COINBASE:RENDERUSD": {
-      "last_pull": "2026-07-02T19:41:34"
+      "last_pull": "2026-07-03T08:34:44"
     },
     "BYBIT:SUIUSDC.P": {
-      "last_pull": "2026-07-02T19:40:40",
+      "last_pull": "2026-07-03T08:33:50",
       "last_signal": "2026-06-30T10:37:44",
       "last_signal_val": 1
     },
     "BYBIT:BTCUSDC.P": {
-      "last_pull": "2026-07-02T19:38:32"
+      "last_pull": "2026-07-03T08:28:49"
     },
     "BYBIT:HYPEUSDC.P": {
-      "last_pull": "2026-07-02T19:39:10"
+      "last_pull": "2026-07-03T08:29:25"
     },
     "BYBIT:SOLUSDC.P": {
-      "last_pull": "2026-07-02T19:40:22"
+      "last_pull": "2026-07-03T08:33:32"
     },
     "BYBIT:ONDOUSDC.P": {
-      "last_pull": "2026-07-02T19:40:04"
+      "last_pull": "2026-07-03T08:30:19"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-07-02T19:44:20"
+      "last_pull": "2026-07-03T09:43:29"
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-07-02T19:43:08",
+      "last_pull": "2026-07-03T09:30:33",
       "last_signal": "2026-07-02T08:07:16",
       "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-07-02T19:44:02",
+      "last_pull": "2026-07-03T09:43:10",
       "last_signal": "2026-06-30T08:13:19",
       "last_signal_val": 1
     },
     "COINBASE:GOLDUSDC.P": {
-      "last_pull": "2026-07-02T19:41:16",
+      "last_pull": "2026-07-03T08:34:26",
       "last_signal": "2026-07-02T07:55:08",
       "last_signal_val": 1
     },
     "COINBASE:SILVERUSDC.P": {
-      "last_pull": "2026-07-02T19:41:52"
+      "last_pull": "2026-07-03T08:35:02"
     },
     "SZSE:000725": {
-      "last_pull": "2026-06-29T22:16:33"
+      "last_pull": "2026-07-02T22:13:23"
     },
     "SZSE:002415": {
-      "last_pull": "2026-06-29T22:21:48"
+      "last_pull": "2026-07-02T22:13:41"
     },
     "NYSE:LLY": {
-      "last_pull": "2026-07-02T08:04:24"
+      "last_pull": "2026-07-03T09:12:48"
     },
     "NYSE:DELL": {
-      "last_pull": "2026-07-02T08:01:11"
+      "last_pull": "2026-07-03T08:48:55"
     },
     "NYSE:CAT": {
-      "last_pull": "2026-07-02T08:00:53"
+      "last_pull": "2026-07-03T08:48:37"
     },
     "NYSE:KO": {
-      "last_pull": "2026-07-02T08:04:06"
+      "last_pull": "2026-07-03T09:12:29"
     },
     "NYSE:GS": {
-      "last_pull": "2026-07-02T08:02:54"
+      "last_pull": "2026-07-03T08:49:49"
     },
     "NYSE:MS": {
-      "last_pull": "2026-07-02T08:05:28"
+      "last_pull": "2026-07-03T09:13:42"
     },
     "NYSE:HPE": {
       "last_pull": "2026-07-01T12:56:39"
     },
     "NASDAQ:CSCO": {
-      "last_pull": "2026-07-02T07:57:17"
+      "last_pull": "2026-07-03T08:37:28"
     },
     "NASDAQ:AAPL": {
-      "last_pull": "2026-07-02T07:56:02",
+      "last_pull": "2026-07-03T08:35:20",
       "last_signal": "2026-07-01T12:57:15",
       "last_signal_val": 1
     },
     "NASDAQ:AMAT": {
-      "last_pull": "2026-07-02T07:56:23"
+      "last_pull": "2026-07-03T08:35:38"
     },
     "NASDAQ:AMD": {
-      "last_pull": "2026-07-02T07:56:41"
+      "last_pull": "2026-07-03T08:35:56"
     },
     "NASDAQ:AMGN": {
-      "last_pull": "2026-07-02T07:56:59"
+      "last_pull": "2026-07-03T08:37:10"
     },
     "NASDAQ:FTNT": {
-      "last_pull": "2026-07-02T07:57:35"
+      "last_pull": "2026-07-03T08:37:46"
     },
     "NASDAQ:KLAC": {
-      "last_pull": "2026-07-02T07:57:53"
+      "last_pull": "2026-07-03T08:38:04"
     },
     "NASDAQ:MNST": {
-      "last_pull": "2026-07-02T07:58:11"
+      "last_pull": "2026-07-03T08:38:22"
     },
     "NASDAQ:PANW": {
-      "last_pull": "2026-07-02T07:58:29"
+      "last_pull": "2026-07-03T08:38:40"
     },
     "NASDAQ:PYPL": {
-      "last_pull": "2026-07-02T07:58:47"
+      "last_pull": "2026-07-03T08:38:58"
     },
     "NASDAQ:REGN": {
-      "last_pull": "2026-07-02T07:59:05"
+      "last_pull": "2026-07-03T08:39:16"
     },
     "NASDAQ:SBUX": {
-      "last_pull": "2026-07-02T07:59:23"
+      "last_pull": "2026-07-03T08:47:07"
     },
     "NASDAQ:VRTX": {
-      "last_pull": "2026-07-02T07:59:41"
+      "last_pull": "2026-07-03T08:47:25"
     },
     "NYSE:ABT": {
-      "last_pull": "2026-07-02T07:59:59"
+      "last_pull": "2026-07-03T08:47:43"
     },
     "NYSE:AXP": {
-      "last_pull": "2026-07-02T08:00:17"
+      "last_pull": "2026-07-03T08:48:01"
     },
     "NYSE:BAC": {
-      "last_pull": "2026-07-02T08:00:35"
+      "last_pull": "2026-07-03T08:48:19"
     },
     "NYSE:DHR": {
-      "last_pull": "2026-07-02T08:02:18"
+      "last_pull": "2026-07-03T08:49:13"
     },
     "NYSE:GE": {
-      "last_pull": "2026-07-02T08:02:36"
+      "last_pull": "2026-07-03T08:49:31"
     },
     "NYSE:HD": {
-      "last_pull": "2026-07-02T08:03:12"
+      "last_pull": "2026-07-03T09:06:06"
     },
     "NYSE:JNJ": {
-      "last_pull": "2026-07-02T08:03:30"
+      "last_pull": "2026-07-03T09:06:24"
     },
     "NYSE:JPM": {
-      "last_pull": "2026-07-02T08:03:48"
+      "last_pull": "2026-07-03T09:06:42"
     },
     "NYSE:MA": {
-      "last_pull": "2026-07-02T08:04:42"
+      "last_pull": "2026-07-03T09:13:06"
     },
     "NYSE:MRK": {
-      "last_pull": "2026-07-02T08:05:00"
+      "last_pull": "2026-07-03T09:13:24"
     },
     "NYSE:RTX": {
-      "last_pull": "2026-07-02T08:05:46"
+      "last_pull": "2026-07-03T09:14:00"
     },
     "NYSE:TMO": {
-      "last_pull": "2026-07-02T08:06:04"
+      "last_pull": "2026-07-03T09:14:18"
     },
     "NYSE:UNH": {
-      "last_pull": "2026-07-02T08:06:22"
+      "last_pull": "2026-07-03T09:14:36"
     },
     "NYSE:V": {
-      "last_pull": "2026-07-02T08:06:40"
+      "last_pull": "2026-07-03T09:14:54"
     },
     "NYSE:WFC": {
-      "last_pull": "2026-07-02T08:06:58"
+      "last_pull": "2026-07-03T09:15:12"
     },
     "SSE:600028": {
-      "last_pull": "2026-07-02T19:44:56"
+      "last_pull": "2026-07-02T22:07:16"
     },
     "SSE:600030": {
-      "last_pull": "2026-07-02T19:45:14"
+      "last_pull": "2026-07-02T22:07:34"
     },
     "SSE:600111": {
-      "last_pull": "2026-07-02T19:45:32"
+      "last_pull": "2026-07-02T22:09:12"
+    },
+    "SSE:600346": {
+      "last_pull": "2026-07-02T22:09:30"
+    },
+    "SSE:600460": {
+      "last_pull": "2026-07-02T22:09:48"
+    },
+    "SSE:601211": {
+      "last_pull": "2026-07-02T22:11:53"
+    },
+    "SSE:601229": {
+      "last_pull": "2026-07-02T22:12:11"
+    },
+    "SSE:601628": {
+      "last_pull": "2026-07-02T22:12:29"
+    },
+    "SSE:601688": {
+      "last_pull": "2026-07-02T22:12:47"
+    },
+    "SZSE:000538": {
+      "last_pull": "2026-07-02T22:13:05",
+      "last_signal": "2026-07-02T22:13:05",
+      "last_signal_val": 1
+    },
+    "SZSE:002493": {
+      "last_pull": "2026-07-02T22:13:59"
     }
   },
   "open_trades": {
@@ -345,10 +371,10 @@
     "COINBASE:SILVERUSDC.P": {
       "pair": "COINBASE:SILVERUSDC.P",
       "direction": "long",
-      "entry": 4071.5,
-      "tp": 0.0,
-      "sl": 0.0,
-      "atr": 38.0515,
+      "entry": 62.0745,
+      "tp": 83.6337,
+      "sl": 53.9898,
+      "atr": 2.6949,
       "size": 1.0,
       "features": {
         "f1_rsi14": 0.5064,
@@ -604,6 +630,140 @@
       },
       "bar_time": "2026-07-02T08:07:34",
       "open_time": "2026-07-02T08:07:34",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "BYBIT:LINKUSDC.P": {
+      "pair": "BYBIT:LINKUSDC.P",
+      "direction": "long",
+      "entry": 7.37121,
+      "tp": 9.9904,
+      "sl": 7.37121,
+      "atr": 0.3613,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-06-22T00:00:00",
+      "open_time": "2026-06-22T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": true,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "BYBIT:ONDOUSDC.P": {
+      "pair": "BYBIT:ONDOUSDC.P",
+      "direction": "long",
+      "entry": 0.332475,
+      "tp": 0.476603,
+      "sl": 0.278427,
+      "atr": 0.018016,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T18:15:00",
+      "open_time": "2026-07-02T18:15:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [
+        {
+          "condition": "price_gte",
+          "price": 0.39,
+          "action": "partial_close",
+          "fraction": 0.5,
+          "note": "close half at 0.39"
+        }
+      ]
+    },
+    "BYBIT:HYPEUSDC.P": {
+      "pair": "BYBIT:HYPEUSDC.P",
+      "direction": "long",
+      "entry": 65.4145,
+      "tp": 102.6231,
+      "sl": 51.4613,
+      "atr": 4.651071,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-06-22T00:00:00",
+      "open_time": "2026-06-22T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "COINBASE:GOLDUSDC.P": {
+      "pair": "COINBASE:GOLDUSDC.P",
+      "direction": "long",
+      "entry": 4122.51,
+      "tp": 4790.57,
+      "sl": 3871.99,
+      "atr": 83.507,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T00:00:00",
+      "open_time": "2026-07-02T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "XYZ:CL": {
+      "pair": "XYZ:CL",
+      "direction": "long",
+      "entry": 68.623,
+      "tp": 90.5462,
+      "sl": 60.4018,
+      "atr": 2.7404,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T00:00:00",
+      "open_time": "2026-07-02T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": []
+    },
+    "XYZ:BRENTOIL": {
+      "pair": "XYZ:BRENTOIL",
+      "direction": "long",
+      "entry": 71.5846,
+      "tp": 93.5454,
+      "sl": 63.3493,
+      "atr": 2.7451,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-07-02T00:00:00",
+      "open_time": "2026-07-02T00:00:00",
       "closed": false,
       "close_price": null,
       "close_reason": null,
