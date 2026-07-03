@@ -357,10 +357,10 @@
     "COINBASE:SILVERUSDC.P": {
       "pair": "COINBASE:SILVERUSDC.P",
       "direction": "long",
-      "entry": 4071.5,
-      "tp": 0.0,
-      "sl": 0.0,
-      "atr": 38.0515,
+      "entry": 62.0745,
+      "tp": 83.6337,
+      "sl": 53.9898,
+      "atr": 2.6949,
       "size": 1.0,
       "features": {
         "f1_rsi14": 0.5064,
