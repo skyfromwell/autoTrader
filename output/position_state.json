@@ -280,7 +280,7 @@
       "direction": "long",
       "entry": 0.714,
       "tp": 0.8481,
-      "sl": 0.7186,
+      "sl": 0.7339,
       "atr": 0.0153,
       "size": 1.0,
       "features": {
@@ -307,13 +307,6 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 0.7833,
-          "action": "move_sl",
-          "value": 0.7339,
-          "note": "50% TP -> SL +1ATR"
-        },
         {
           "condition": "price_gte",
           "price": 0.8157,
