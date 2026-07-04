@@ -322,11 +322,14 @@ def close_position(tv_pair: str) -> dict:
     if not pos or float(pos['szi']) == 0:
         return {"skipped": True, "reason": "no_position"}
     szi    = float(pos['szi'])
-    is_buy = szi < 0   # closing short → buy back
+    is_buy = szi < 0   # closing short → buy back; closing long → sell
     size   = round(abs(szi), sz_decimals(coin))
-    result = exchange.market_close(coin, sz=size)
-    log.info(f"[{coin}] closed {size}  result={result}")
-    return {"coin": coin, "closed": True, "size": size}
+    # market_close doesn't work for xyz DEX — use market_open in opposite direction
+    result = exchange.market_open(coin, is_buy=is_buy, sz=size, slippage=0.01)
+    fill   = result.get('response', {}).get('data', {}).get('statuses', [{}])[0].get('filled', {})
+    avg_px = float(fill.get('avgPx', 0))
+    log.info(f"[{coin}] closed {size} @ {avg_px}  result={result}")
+    return {"coin": coin, "closed": True, "size": size, "avg_px": avg_px}
 
 
 def _px_wire(px: float) -> float:
