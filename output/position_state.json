@@ -600,7 +600,7 @@
       "direction": "long",
       "entry": 1.0879,
       "tp": 1.2323,
-      "sl": 1.0885,
+      "sl": 1.108,
       "atr": 0.0195,
       "size": 1.0,
       "features": {
@@ -627,13 +627,6 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [
-        {
-          "condition": "price_gte",
-          "price": 1.1604,
-          "action": "move_sl",
-          "value": 1.108,
-          "note": "50% TP -> SL +1ATR"
-        },
         {
           "condition": "price_gte",
           "price": 1.1964,
