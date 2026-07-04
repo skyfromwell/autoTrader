@@ -9,73 +9,73 @@
   },
   "symbol_state": {
     "PIONEX:BRENTOILUSDT.P": {
-      "last_pull": "2026-07-03T09:43:47"
+      "last_pull": "2026-07-03T17:34:09"
     },
     "BLOFIN:WTIOILUSDT.P": {
-      "last_pull": "2026-07-03T08:28:31"
+      "last_pull": "2026-07-03T17:29:15"
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-07-03T09:30:51",
+      "last_pull": "2026-07-03T16:18:42",
       "last_signal": "2026-07-02T08:07:34",
       "last_signal_val": 1
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-07-03T09:31:09"
+      "last_pull": "2026-07-03T16:19:00"
     },
     "BYBIT:ETHUSDC.P": {
-      "last_pull": "2026-07-03T08:29:07"
+      "last_pull": "2026-07-03T17:30:23"
     },
     "BYBIT:LINKUSDC.P": {
-      "last_pull": "2026-07-03T08:30:01"
+      "last_pull": "2026-07-03T17:31:15"
     },
     "BYBIT:INJUSDC.P": {
-      "last_pull": "2026-07-03T08:29:43"
+      "last_pull": "2026-07-03T17:30:58"
     },
     "BYBIT:XRPUSDC.P": {
-      "last_pull": "2026-07-03T08:34:08",
+      "last_pull": "2026-07-03T17:32:25",
       "last_signal": "2026-07-02T07:54:48",
       "last_signal_val": 1
     },
     "COINBASE:RENDERUSD": {
-      "last_pull": "2026-07-03T08:34:44"
+      "last_pull": "2026-07-03T17:33:17"
     },
     "BYBIT:SUIUSDC.P": {
-      "last_pull": "2026-07-03T08:33:50",
+      "last_pull": "2026-07-03T17:32:07",
       "last_signal": "2026-06-30T10:37:44",
       "last_signal_val": 1
     },
     "BYBIT:BTCUSDC.P": {
-      "last_pull": "2026-07-03T08:28:49"
+      "last_pull": "2026-07-03T17:30:05"
     },
     "BYBIT:HYPEUSDC.P": {
-      "last_pull": "2026-07-03T08:29:25"
+      "last_pull": "2026-07-03T17:30:40"
     },
     "BYBIT:SOLUSDC.P": {
-      "last_pull": "2026-07-03T08:33:32"
+      "last_pull": "2026-07-03T17:31:50"
     },
     "BYBIT:ONDOUSDC.P": {
-      "last_pull": "2026-07-03T08:30:19"
+      "last_pull": "2026-07-03T17:31:32"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-07-03T09:43:29"
+      "last_pull": "2026-07-03T16:21:01"
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-07-03T09:30:33",
+      "last_pull": "2026-07-03T16:18:24",
       "last_signal": "2026-07-02T08:07:16",
       "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-07-03T09:43:10",
+      "last_pull": "2026-07-03T16:20:43",
       "last_signal": "2026-06-30T08:13:19",
       "last_signal_val": 1
     },
     "COINBASE:GOLDUSDC.P": {
-      "last_pull": "2026-07-03T08:34:26",
+      "last_pull": "2026-07-03T17:32:42",
       "last_signal": "2026-07-02T07:55:08",
       "last_signal_val": 1
     },
     "COINBASE:SILVERUSDC.P": {
-      "last_pull": "2026-07-03T08:35:02"
+      "last_pull": "2026-07-03T17:33:34"
     },
     "SZSE:000725": {
       "last_pull": "2026-07-02T22:13:23"
@@ -225,11 +225,11 @@
     "SZSE:002493": {
       "last_pull": "2026-07-02T22:13:59"
     },
-    "COINBASE:XLMUSDC.P": {
-      "last_pull": "2026-07-03T14:03:03"
-    },
     "COINBASE:HBARUSDC.P": {
-      "last_pull": "2026-07-03T14:03:03"
+      "last_pull": "2026-07-03T17:33:00"
+    },
+    "COINBASE:XLMUSDC.P": {
+      "last_pull": "2026-07-03T17:33:52"
     }
   },
   "open_trades": {
@@ -306,7 +306,22 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": []
+      "price_triggers": [
+        {
+          "condition": "price_gte",
+          "price": 0.7833,
+          "action": "move_sl",
+          "value": 0.7339,
+          "note": "50% TP -> SL +1ATR"
+        },
+        {
+          "condition": "price_gte",
+          "price": 0.8157,
+          "action": "move_sl",
+          "value": 0.7492,
+          "note": "75% TP -> SL +2ATR"
+        }
+      ]
     },
     "BYBIT:INJUSDC.P": {
       "pair": "BYBIT:INJUSDC.P",
@@ -611,7 +626,22 @@
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
-      "price_triggers": []
+      "price_triggers": [
+        {
+          "condition": "price_gte",
+          "price": 1.1604,
+          "action": "move_sl",
+          "value": 1.108,
+          "note": "50% TP -> SL +1ATR"
+        },
+        {
+          "condition": "price_gte",
+          "price": 1.1964,
+          "action": "move_sl",
+          "value": 1.1275,
+          "note": "75% TP -> SL +2ATR"
+        }
+      ]
     },
     "OANDA:EURUSD": {
       "pair": "OANDA:EURUSD",
@@ -645,6 +675,42 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": []
+    },
+    "BYBIT:HYPEUSDC.P": {
+      "pair": "BYBIT:HYPEUSDC.P",
+      "direction": "long",
+      "entry": 65.4145,
+      "tp": 102.6231,
+      "sl": 51.4613,
+      "atr": 4.651071,
+      "size": 1.0,
+      "features": {},
+      "bar_time": "2026-06-22T00:00:00",
+      "open_time": "2026-06-22T00:00:00",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [
+        {
+          "condition": "price_gte",
+          "price": 80.2979,
+          "action": "move_sl",
+          "value": 65.4145,
+          "note": "40% TP -> SL BE"
+        },
+        {
+          "condition": "price_gte",
+          "price": 89.6001,
+          "action": "move_sl",
+          "value": 70.0656,
+          "note": "65% TP -> SL +1ATR"
+        }
+      ]
     },
     "BYBIT:LINKUSDC.P": {
       "pair": "BYBIT:LINKUSDC.P",
@@ -695,27 +761,6 @@
           "note": "close half at 0.39"
         }
       ]
-    },
-    "BYBIT:HYPEUSDC.P": {
-      "pair": "BYBIT:HYPEUSDC.P",
-      "direction": "long",
-      "entry": 65.4145,
-      "tp": 102.6231,
-      "sl": 51.4613,
-      "atr": 4.651071,
-      "size": 1.0,
-      "features": {},
-      "bar_time": "2026-06-22T00:00:00",
-      "open_time": "2026-06-22T00:00:00",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": []
     },
     "COINBASE:GOLDUSDC.P": {
       "pair": "COINBASE:GOLDUSDC.P",
