@@ -9,6 +9,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+# Fields that can be legitimately edited on disk while the watcher runs.
+# When the file is newer than our last load, these are synced back into memory.
+_EXTERNAL_EDIT_FIELDS = frozenset({"tp", "sl", "atr", "price_triggers",
+                                   "runner_active", "protected_sl"})
+
 STATE_FILE = Path("output/position_state.json")
 log = logging.getLogger(__name__)
 
@@ -70,6 +75,7 @@ class PositionManager:
         # symbol_state: {pair: {"last_pull": iso, "last_signal": iso, "last_signal_val": int}}
         self._symbol_state: dict[str, dict]         = {}
         self.cooldown       = CooldownManager()
+        self._file_mtime:   float                   = 0.0
         self._load()
 
     # ── Persistence ───────────────────────────────────────────────────────────
@@ -78,6 +84,7 @@ class PositionManager:
         try:
             if STATE_FILE.exists():
                 data = json.loads(STATE_FILE.read_text())
+                self._file_mtime   = STATE_FILE.stat().st_mtime
                 self._sl_streaks   = data.get("sl_streaks", {})
                 self._symbol_state = data.get("symbol_state", {})
                 known = {f.name for f in fields(Trade)}
@@ -89,9 +96,39 @@ class PositionManager:
     def _save(self) -> None:
         try:
             STATE_FILE.parent.mkdir(exist_ok=True)
-            open_trades = {}
+
+            # Detect external edits made while the watcher was running (e.g. manual
+            # tp/sl/price_triggers changes, or new pairs added directly to the file).
+            existing_trades: dict = {}
+            if STATE_FILE.exists():
+                try:
+                    disk_mtime = STATE_FILE.stat().st_mtime
+                    if disk_mtime > self._file_mtime:
+                        disk_data      = json.loads(STATE_FILE.read_text())
+                        existing_trades = disk_data.get("open_trades", {})
+                        self._file_mtime = disk_mtime
+                        known = {f.name for f in fields(Trade)}
+                        # Sync externally-changed fields into our in-memory trades
+                        for pair, ext in existing_trades.items():
+                            if pair in self._trades:
+                                t = self._trades[pair]
+                                for fld in _EXTERNAL_EDIT_FIELDS:
+                                    if fld in ext:
+                                        setattr(t, fld, ext[fld])
+                    else:
+                        existing_trades = json.loads(STATE_FILE.read_text()).get("open_trades", {})
+                except Exception:
+                    pass
+
+            open_trades: dict = {}
+            # Preserve pairs not managed in memory (manually added to the file)
+            for pair, td in existing_trades.items():
+                if pair not in self._trades:
+                    open_trades[pair] = td
+            # Write managed trades
             for pair, t in self._trades.items():
                 open_trades[pair] = {k: v for k, v in t.__dict__.items()}
+
             STATE_FILE.write_text(json.dumps(
                 {
                     "sl_streaks":   self._sl_streaks,
@@ -100,6 +137,7 @@ class PositionManager:
                 },
                 indent=2
             ))
+            self._file_mtime = STATE_FILE.stat().st_mtime
         except Exception as e:
             log.warning(f"Could not save position state: {e}")
 

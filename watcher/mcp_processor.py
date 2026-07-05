@@ -231,20 +231,22 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
         elif action == "flip_long":
             log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_long — {cond}@{level}  {note}")
             _close_broker_position(pair)
+            old_tp, old_atr = trade.tp, trade.atr
             manager.close_trade(pair, reason=f"price_trigger_flip@{level}",
                                 close_price=mark_price)
             _broker_execute(pair, "long", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="long", entry=mark_price,
-                               tp=None, sl=None, atr=trade.atr, size=1.0, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=1.0, features={})
             log.info(f"[{pair}] ✅ Flipped to LONG at {mark_price} notional=${notional:,}")
         elif action == "flip_short":
             log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_short — {cond}@{level}  {note}")
             _close_broker_position(pair)
+            old_tp, old_atr = trade.tp, trade.atr
             manager.close_trade(pair, reason=f"price_trigger_flip@{level}",
                                 close_price=mark_price)
             _broker_execute(pair, "short", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="short", entry=mark_price,
-                               tp=None, sl=None, atr=trade.atr, size=1.0, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=1.0, features={})
             log.info(f"[{pair}] ✅ Flipped to SHORT at {mark_price} notional=${notional:,}")
         elif action == "partial_close":
             fraction = float(trig.get("fraction", 0.5))
