@@ -216,8 +216,9 @@ def execute_queue() -> list[dict]:
             results.append({"pair": pair, "status": "skipped", "reason": "already_long"})
             continue
 
+        notional = order.get("notional", DEFAULT_NOTIONAL)
         try:
-            res = _buy_market(pair, order["signal_price"], order.get("notional", DEFAULT_NOTIONAL))
+            res = _buy_market(pair, order["signal_price"], notional)
         except Exception as e:
             log.error(f"[Queue] {pair} order failed: {e}")
             results.append({"pair": pair, "status": "error", "error": str(e)})
@@ -230,7 +231,7 @@ def execute_queue() -> list[dict]:
 
         manager.open_trade(pair=pair, direction="long",
                            entry=res["exec_price_est"],
-                           tp=None, sl=None, atr=0, size=1.0, features={})
+                           tp=None, sl=None, atr=0, size=notional, features={})
         _dequeue(pair)
         log.info(f"[Queue] ✅ {pair}  vol={res['volume']}  order={res['order_id']}")
         results.append({"pair": pair, "status": "ok", **res})
@@ -401,12 +402,12 @@ async def _handle_action(pair: str, action: str, payload: AlertPayload,
         if is_china:
             res = _buy_market(pair, price, notional)
             manager.open_trade(pair=pair, direction="long", entry=res["exec_price_est"],
-                               tp=None, sl=None, atr=0, size=1.0, features={})
+                               tp=None, sl=None, atr=0, size=notional, features={})
             return {"ok": True, "action": action, "pair": pair, **res}
         from trader.oanda_trader import execute_trade as oanda_execute
         oanda_execute(pair, direction, price=price, notional=notional)
         manager.open_trade(pair=pair, direction=direction, entry=price,
-                           tp=None, sl=None, atr=0, size=1.0, features={})
+                           tp=None, sl=None, atr=0, size=notional, features={})
         return {"ok": True, "action": action, "pair": pair, "direction": direction}
 
     if action == "partial_close":

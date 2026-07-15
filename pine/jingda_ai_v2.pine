@@ -491,8 +491,8 @@ f2s(float v) => str.tostring(math.round(v, 5))
 longCloseReason  = endLongSL  ? "sl_hit" : endLongOnFlip  ? "signal_flip" : "runner_exit"
 shortCloseReason = endShortSL ? "sl_hit" : endShortOnFlip ? "signal_flip" : "runner_exit"
 
-longOpenMsg   = '{"event":"signal","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"entry":' + f2s(close) + ',"tp":' + f2s(close + atr * tpAtrMult) + ',"sl":' + f2s(close - atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"prediction":' + str.tostring(math.round(prediction)) + ',"ema_distance":' + f2s(emaDistance) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + '}'
-shortOpenMsg  = '{"event":"signal","direction":"short","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"entry":' + f2s(close) + ',"tp":' + f2s(close - atr * tpAtrMult) + ',"sl":' + f2s(close + atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"prediction":' + str.tostring(math.round(prediction)) + ',"ema_distance":' + f2s(emaDistance) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + '}'
+longOpenMsg   = '{"action":"open_long","pair":"'  + syminfo.prefix + ':' + syminfo.ticker + '","price":' + f2s(close) + ',"tp":' + f2s(close + atr * tpAtrMult) + ',"sl":' + f2s(close - atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + '}'
+shortOpenMsg  = '{"action":"open_short","pair":"' + syminfo.prefix + ':' + syminfo.ticker + '","price":' + f2s(close) + ',"tp":' + f2s(close - atr * tpAtrMult) + ',"sl":' + f2s(close + atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + '}'
 tpHitLongMsg  = '{"event":"tp_hit","direction":"long","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"tp_price":' + f2s(tpLevel) + ',"entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
 tpHitShortMsg = '{"event":"tp_hit","direction":"short","pair":"'  + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"tp_price":' + f2s(tpLevel) + ',"entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
 closeLongMsg  = '{"event":"close","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"close_price":' + f2s(close) + ',"reason":"' + longCloseReason  + '"}'
@@ -510,10 +510,12 @@ if endLongTrade
     alert(closeLongMsg,  alert.freq_once_per_bar)
 if endShortTrade
     alert(closeShortMsg, alert.freq_once_per_bar)
-if alertBullish
-    alert('{"event":"kernel_bullish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
-if alertBearish
-    alert('{"event":"kernel_bearish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
+// Disabled: fires on every kernel slope change (unrelated to position open/close),
+// spams alerts, and 400s the webhook since AlertPayload has no "event" field.
+// if alertBullish
+//     alert('{"event":"kernel_bullish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
+// if alertBearish
+//     alert('{"event":"kernel_bearish","pair":"' + syminfo.ticker + '","bar_time":' + str.tostring(time) + '}', alert.freq_once_per_bar)
 
 // =========================
 // ==== Display Signals ====
@@ -578,6 +580,9 @@ plot(volScore,             "Vol Score",        display=display.data_window)
 plot(volSlope,             "Vol Slope",        display=display.data_window)
 plot(volStrong  ? 1 : 0,  "Vol Strong",       display=display.data_window)
 plot(volWeak    ? 1 : 0,  "Vol Weak",         display=display.data_window)
+plot(tpLevel,              "TP",               display=display.data_window)
+plot(slLevel,              "SL",               display=display.data_window)
+plot(atr,                  "ATR",              display=display.data_window)
 
 [totalWins, totalLosses, totalEarlySignalFlips, totalTrades, tradeStatsHeader, winLossRatio, winRate] = ml.backtest(high, low, open, startLongTrade, endLongTrade, startShortTrade, endShortTrade, isEarlySignalFlip, maxBarsBackIndex, bar_index, settings.source, useWorstCase)
 

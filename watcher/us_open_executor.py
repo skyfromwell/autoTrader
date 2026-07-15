@@ -83,7 +83,7 @@ def main():
                         pass
                     manager.open_trade(
                         pair=tv_sym, direction=direction, entry=entry,
-                        tp=None, sl=None, atr=0.0, size=1.0, features={},
+                        tp=None, sl=None, atr=0.0, size=notional, features={},
                         bar_time=datetime.now().isoformat(timespec="seconds"),
                     )
                     log.info(f"[{tv_sym}] ✅ OPENED {direction.upper()}  entry={entry:.2f}  notional=${notional:,}")

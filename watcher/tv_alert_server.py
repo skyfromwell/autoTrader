@@ -30,8 +30,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -51,6 +51,7 @@ from trader.hyperliquid_trader import close_position as hl_close
 from trader.hyperliquid_trader import partial_close_position as hl_partial_close
 from trader.oanda_trader        import execute_trade as oanda_execute
 from trader.oanda_trader        import close_position as oanda_close
+from trader.oanda_trader        import _request as oanda_request, _ACCOUNT as _OANDA_ACCOUNT, _oanda_instrument
 from trader.trader              import execute_trade as alpaca_execute
 from trader.china_trader        import execute_trade as china_execute
 from trader.china_trader        import close_position as china_close
@@ -60,10 +61,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s %(m
 log = logging.getLogger(__name__)
 
 TV_SECRET         = os.getenv("TV_WEBHOOK_SECRET", "")
-CHINA_URL         = os.getenv("CHINA_SERVER_URL", "http://100.64.0.1:8888")
-CHINA_KEY         = os.getenv("CHINA_API_KEY", "")
 CHINA_NOTIONAL    = int(os.getenv("CHINA_NOTIONAL_CNY", "50000"))
-PENDING_FILE      = Path("output/china_pending_orders.json")
+CHINA_PENDING_DIR = Path("output/china_pending")
 _NOTIONAL_DEFAULT = 10_000
 
 _CRYPTO_PREFIXES   = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "PIONEX", "BLOFIN"}
@@ -99,16 +98,17 @@ def _prefix(pair: str) -> str:
     return pair.split(":")[0].upper() if ":" in pair else ""
 
 
-def _broker_open(pair: str, direction: str, price: float | None, notional: int) -> None:
+def _broker_open(pair: str, direction: str, price: float | None, notional: int,
+                 tp: float | None = None, sl: float | None = None) -> None:
     p = _prefix(pair)
     if p in _CRYPTO_PREFIXES:
-        hl_execute(pair, direction, price=price, notional=notional)
+        hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
     elif p in _FOREX_PREFIXES:
-        oanda_execute(pair, direction, price=price, notional=notional)
+        oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
     elif p in _CHINESE_PREFIXES:
         china_execute(pair, direction, price=price or 0, notional=notional)
     else:
-        alpaca_execute(pair, direction, price=price, notional=notional)
+        alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
 
 
 def _broker_close(pair: str, price: float = 0) -> None:
@@ -123,124 +123,109 @@ def _broker_close(pair: str, price: float = 0) -> None:
         log.warning(f"[{pair}] Alpaca close not wired — manual close needed")
 
 
-# ── China pending order queue ─────────────────────────────────────────────────
+def _oanda_live_position(pair: str) -> str | None:
+    """Return 'long'|'short' if pair has a live position on Oanda, else None."""
+    if not pair.upper().startswith("OANDA:"):
+        return None
+    try:
+        instrument = _oanda_instrument(pair)
+        r = oanda_request("GET", f"/accounts/{_OANDA_ACCOUNT}/positions/{instrument}")
+        pos = r.get("position", {})
+        long_units  = float(pos.get("long",  {}).get("units", 0))
+        short_units = float(pos.get("short", {}).get("units", 0))
+        if long_units > 0:
+            return "long"
+        if short_units < 0:
+            return "short"
+        return None
+    except Exception as e:
+        log.warning(f"[{pair}] Oanda position check failed: {e}")
+        return None
+
+
+def _hl_live_position(pair: str) -> str | None:
+    """Return 'long'|'short' if pair has a live position on Hyperliquid, else None."""
+    p = _prefix(pair)
+    if p not in _CRYPTO_PREFIXES:
+        return None
+    try:
+        import requests as _req
+        wallet = os.environ.get("HL_WALLET_ADDRESS", "")
+        if not wallet:
+            return None
+        coin = pair.split(":")[-1].replace("USDC.P", "").replace("USDT.P", "")
+        r = _req.post("https://api.hyperliquid.xyz/info",
+                      json={"type": "clearinghouseState", "user": wallet}, timeout=8)
+        for ap in r.json().get("assetPositions", []):
+            pos = ap.get("position", {})
+            if pos.get("coin") == coin:
+                szi = float(pos.get("szi", 0))
+                if szi > 0: return "long"
+                if szi < 0: return "short"
+        return None
+    except Exception as e:
+        log.warning(f"[{pair}] HL position check failed: {e}")
+        return None
+
+
+def _broker_live_position(pair: str) -> str | None:
+    """Return 'long'|'short' if pair has a live position on the broker, else None."""
+    p = _prefix(pair)
+    if p in _FOREX_PREFIXES:
+        return _oanda_live_position(pair)
+    if p in _CRYPTO_PREFIXES:
+        return _hl_live_position(pair)
+    return None
+
+
+# ── China pending order queue (Syncthing file-based) ─────────────────────────
+# Each pending order is a separate JSON file: output/china_pending/SZSE_000725.json
+# Syncthing replicates the folder to Windows in real time.
+# china_executor.py on Windows watches the folder, executes, then deletes the file.
+# Deletion propagates back via Syncthing — no HTTP polling needed.
+
+def _pair_filename(pair: str) -> str:
+    """SZSE:000725 → SZSE_000725.json"""
+    return pair.replace(":", "_") + ".json"
+
+
+def _filename_to_pair(stem: str) -> str:
+    """SZSE_000725 → SZSE:000725  (replace first _ with :)"""
+    return stem.replace("_", ":", 1)
+
 
 def _load_pending() -> dict:
-    if PENDING_FILE.exists():
-        return json.loads(PENDING_FILE.read_text())
-    return {}
-
-
-def _save_pending(pending: dict) -> None:
-    PENDING_FILE.parent.mkdir(exist_ok=True)
-    PENDING_FILE.write_text(json.dumps(pending, indent=2))
+    CHINA_PENDING_DIR.mkdir(parents=True, exist_ok=True)
+    result = {}
+    for f in sorted(CHINA_PENDING_DIR.glob("*.json")):
+        try:
+            data = json.loads(f.read_text())
+            pair = data.get("pair") or _filename_to_pair(f.stem)
+            result[pair] = data
+        except Exception:
+            pass
+    return result
 
 
 def _queue_order(pair: str, price: float, timeframe: str, notional: int) -> None:
-    pending = _load_pending()
-    pending[pair] = {
+    CHINA_PENDING_DIR.mkdir(parents=True, exist_ok=True)
+    order = {
         "pair":         pair,
         "notional":     notional,
         "signal_price": price,
         "timeframe":    timeframe,
         "queued_at":    datetime.now().isoformat(timespec="seconds"),
     }
-    _save_pending(pending)
+    fpath = CHINA_PENDING_DIR / _pair_filename(pair)
+    fpath.write_text(json.dumps(order, indent=2))
+    pending_count = len(list(CHINA_PENDING_DIR.glob("*.json")))
     log.info(f"[Queue] ➕ {pair} ({timeframe})  price={price}  notional=¥{notional:,}  "
-             f"→ pending ({len(pending)} total)")
+             f"→ {fpath.name}  ({pending_count} total)")
 
 
 def _dequeue(pair: str) -> None:
-    pending = _load_pending()
-    if pair in pending:
-        pending.pop(pair)
-        _save_pending(pending)
-
-
-# ── China miniQMT helpers ─────────────────────────────────────────────────────
-
-def _china_get(path: str) -> dict:
-    req = urllib.request.Request(f"{CHINA_URL}{path}", headers={"X-API-Key": CHINA_KEY})
-    with urllib.request.urlopen(req, timeout=10) as r:
-        return json.loads(r.read())
-
-
-def _china_post(path: str, body: dict) -> dict:
-    req = urllib.request.Request(
-        f"{CHINA_URL}{path}",
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json", "X-API-Key": CHINA_KEY},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read())
-
-
-def _tv_to_qmt(tv_pair: str) -> str:
-    """SZSE:000725 → 000725.SZ,  SSE:600028 → 600028.SS"""
-    prefix, code = tv_pair.split(":", 1)
-    return code + (".SZ" if prefix == "SZSE" else ".SS")
-
-
-def _buy_market(tv_pair: str, signal_price: float, notional: int = CHINA_NOTIONAL) -> dict:
-    qmt_sym = _tv_to_qmt(tv_pair)
-    try:
-        quote = _china_get(f"/quote?symbol={qmt_sym}")
-        px    = float(quote.get("price") or quote.get("last") or signal_price)
-    except Exception:
-        px = signal_price
-    if px <= 0:
-        raise ValueError(f"Invalid price {px} for {tv_pair}")
-    volume = int((notional // px) // 100) * 100
-    if volume <= 0:
-        raise ValueError(f"0 shares at ¥{px:.2f} notional=¥{notional}")
-    result = _china_post("/order", {"symbol": qmt_sym, "direction": "buy",
-                                    "volume": volume, "price": 0, "order_type": "market"})
-    log.info(f"[China] BUY {qmt_sym}  {volume}sh @ mkt  order_id={result.get('order_id')}  est=¥{volume*px:.0f}")
-    return {"symbol": qmt_sym, "volume": volume, "order_id": result.get("order_id"),
-            "exec_price_est": px, "approx_notional": round(volume * px)}
-
-
-def _qmt_volume(tv_pair: str) -> int:
-    try:
-        pos = _china_get("/positions")
-        qmt_sym = _tv_to_qmt(tv_pair)
-        return next((p["volume"] for p in pos if p["symbol"] == qmt_sym), 0)
-    except Exception:
-        return 0
-
-
-def execute_queue() -> list[dict]:
-    """Place market buy orders for all pending items. Call at 09:30 CST."""
-    pending = _load_pending()
-    if not pending:
-        log.info("[Queue] Nothing pending.")
-        return []
-    log.info(f"[Queue] Executing {len(pending)} pending orders")
-    results = []
-    for pair, order in list(pending.items()):
-        trade = manager.get_trade(pair)
-        if trade and not getattr(trade, "closed", False):
-            log.info(f"[Queue] {pair} — already in position, skip")
-            _dequeue(pair)
-            results.append({"pair": pair, "status": "skipped", "reason": "already_long"})
-            continue
-        try:
-            res = _buy_market(pair, order["signal_price"], order.get("notional", CHINA_NOTIONAL))
-        except Exception as e:
-            log.error(f"[Queue] {pair} failed: {e}")
-            results.append({"pair": pair, "status": "error", "error": str(e)})
-            continue
-        if res.get("order_id", -1) == -1:
-            log.error(f"[Queue] {pair} rejected (order_id=-1)")
-            results.append({"pair": pair, "status": "rejected"})
-            continue
-        manager.open_trade(pair=pair, direction="long", entry=res["exec_price_est"],
-                           tp=None, sl=None, atr=0, size=1.0, features={})
-        _dequeue(pair)
-        log.info(f"[Queue] ✅ {pair}  vol={res['volume']}  order={res['order_id']}")
-        results.append({"pair": pair, "status": "ok", **res})
-    return results
+    fpath = CHINA_PENDING_DIR / _pair_filename(pair)
+    fpath.unlink(missing_ok=True)
 
 
 # ── Payload ───────────────────────────────────────────────────────────────────
@@ -254,6 +239,9 @@ class AlertPayload(BaseModel):
     value:     Optional[float] = None  # new SL price (move_sl / partial_close)
     fraction:  float           = 2/3   # for partial_close
     price:     Optional[float] = None  # bar close price  {{close}}
+    tp:        Optional[float] = None  # take-profit price from Jingda signal
+    sl:        Optional[float] = None  # stop-loss price from Jingda signal
+    atr:       Optional[float] = None  # ATR at signal bar
     notional:  int             = _NOTIONAL_DEFAULT
     note:      Optional[str]   = None
 
@@ -263,7 +251,8 @@ class AlertPayload(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "authenticated": bool(TV_SECRET),
-            "china_pending": len(_load_pending())}
+            "china_pending": len(list(CHINA_PENDING_DIR.glob("*.json")))
+            if CHINA_PENDING_DIR.exists() else 0}
 
 
 @app.get("/pending")
@@ -285,14 +274,56 @@ def remove_pending(pair: str,
     return {"ok": True, "removed": pair}
 
 
-@app.post("/execute-queue")
-async def trigger_execute_queue(x_tv_secret: Optional[str] = Header(None),
-                                secret: Optional[str] = Query(None)):
-    _verify(x_tv_secret, secret)
-    results = execute_queue()
-    return {"executed": sum(1 for r in results if r["status"] == "ok"),
-            "errors":   sum(1 for r in results if r["status"] == "error"),
-            "results":  results}
+def _parse_plain_text(text: str) -> dict | None:
+    """
+    Parse TradingView plain-text alert body into an AlertPayload dict.
+
+    Supported formats:
+      Action:  "BYBIT:HYPEUSDC.P LDC Open Short | HYPEUSDC.P@68.3 | (240)"
+      Signal:  "SSE:600030 Jingda 1 | 600030@29.50 | (D)"
+               "SSE:600030 Jingda -1 | 600030@29.50 | (D)"
+    """
+    text = text.strip()
+
+    # pair — first token containing a colon
+    pair_m = re.match(r'^([A-Z]+:[A-Z0-9.]+)', text)
+    if not pair_m:
+        return None
+    pair = pair_m.group(1)
+
+    # price — after @
+    price = None
+    price_m = re.search(r'@([\d.]+)', text)
+    if price_m:
+        price = float(price_m.group(1))
+
+    # timeframe — inside ( )
+    timeframe = None
+    tf_m = re.search(r'\((\d+|[DWM])\)', text)
+    if tf_m:
+        timeframe = tf_m.group(1)
+
+    # signal integer (e.g. "Jingda 1" or "Jingda -1")
+    sig_m = re.search(r'\b(-?1)\b', text)
+
+    # action keywords
+    text_l = text.lower()
+    if "open long" in text_l:
+        return {"pair": pair, "action": "open_long", "price": price}
+    if "open short" in text_l:
+        return {"pair": pair, "action": "open_short", "price": price}
+    if "close and flip" in text_l or "close_and_flip" in text_l:
+        direction = "short" if "short" in text_l else "long"
+        return {"pair": pair, "action": "close_and_flip", "direction": direction, "price": price}
+    if "close" in text_l:
+        return {"pair": pair, "action": "close", "price": price}
+
+    # signal flow (A-share queue / Jingda signal number)
+    if sig_m:
+        return {"pair": pair, "signal": int(sig_m.group(1)),
+                "price": price, "timeframe": timeframe}
+
+    return None
 
 
 @app.post("/alert")
@@ -303,12 +334,23 @@ async def receive_alert(
 ):
     _verify(x_tv_secret, secret)
     body = await request.body()
+
+    # Try JSON first, fall back to plain-text parser
+    data = None
     try:
         data = json.loads(body)
     except Exception:
-        log.error(f"Non-JSON body received: {body!r}")
-        raise HTTPException(400, "Expected JSON body")
-    log.info(f"Alert received: {data}")
+        pass
+
+    if data is None:
+        text = body.decode(errors="replace").strip()
+        data = _parse_plain_text(text)
+        if data is None:
+            log.error(f"Unparseable alert body: {body!r}")
+            raise HTTPException(400, f"Could not parse alert body: {text[:120]!r}")
+        log.info(f"Plain-text alert parsed: {data}")
+    else:
+        log.info(f"JSON alert received: {data}")
     try:
         payload = AlertPayload(**data)
     except Exception as e:
@@ -373,12 +415,39 @@ async def receive_alert(
 
     if action in ("open_long", "open_short"):
         direction = "long" if action == "open_long" else "short"
-        _broker_open(pair, direction, price, payload.notional)
+        tp  = payload.tp
+        sl  = payload.sl
+        atr = payload.atr or 0
+
+        # ── Smart flip logic ──────────────────────────────────────────────────
+        existing = manager.get_trade(pair)
+        if existing and not existing.closed and existing.direction != direction:
+            # Opposing position exists in state — check if still live on broker
+            live_dir = _broker_live_position(pair)
+            if live_dir is not None:
+                # Still live → close it first, then open new (flip)
+                log.info(f"[TV→] 🔄 Flip {pair}: {existing.direction}→{direction}  "
+                         f"broker confirms live, closing first")
+                _broker_close(pair, price or 0)
+                manager.close_trade(pair,
+                                    reason=f"tv_alert_flip_to_{direction}@{price}",
+                                    close_price=price or 0)
+            else:
+                # Not on broker — stopped out before flip signal arrived
+                log.info(f"[TV→] ⚡ {pair} already stopped out before flip signal — "
+                         f"closing state only, opening {direction}")
+                manager.close_trade(pair,
+                                    reason=f"stopped_out_before_flip@{price}",
+                                    close_price=price or 0)
+        # ─────────────────────────────────────────────────────────────────────
+
+        _broker_open(pair, direction, price, payload.notional, tp=tp, sl=sl)
         manager.open_trade(pair, direction,
-                           entry=price or 0, tp=None, sl=None, atr=0,
-                           size=1.0, features={})
-        log.info(f"[TV→] ✅ Opened {direction.upper()} {pair}")
-        return {"ok": True, "action": action, "pair": pair, "direction": direction}
+                           entry=price or 0, tp=tp, sl=sl, atr=atr,
+                           size=payload.notional, features={})
+        log.info(f"[TV→] ✅ Opened {direction.upper()} {pair}  tp={tp}  sl={sl}  atr={atr}")
+        return {"ok": True, "action": action, "pair": pair, "direction": direction,
+                "tp": tp, "sl": sl}
 
     if action == "close":
         _broker_close(pair, price or 0)
@@ -397,7 +466,7 @@ async def receive_alert(
         _broker_open(pair, new_dir, price, payload.notional)
         manager.open_trade(pair, new_dir,
                            entry=price or 0, tp=None, sl=None, atr=0,
-                           size=1.0, features={})
+                           size=payload.notional, features={})
         log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}")
         return {"ok": True, "action": action, "pair": pair, "new_direction": new_dir}
 
@@ -448,5 +517,5 @@ if __name__ == "__main__":
         port = int(os.getenv("TV_WEBHOOK_PORT", "9999"))
         log.info(f"TV Alert Webhook Server starting on port {port}")
         log.info(f"Tunnel: cloudflared tunnel run autotrader-webhook")
-        log.info(f"China pending queue: {PENDING_FILE}")
+        log.info(f"China pending dir: {CHINA_PENDING_DIR}")
         uvicorn.run("watcher.tv_alert_server:app", host="0.0.0.0", port=port, reload=False)

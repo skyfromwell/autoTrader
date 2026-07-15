@@ -13,14 +13,15 @@ Broker execution wired to Alpaca via trader.execute_trade().
 import csv
 import glob
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from watcher.regime_classifier import RegimeClassifier
-from watcher.position_manager  import PositionManager
-from trader.trader             import execute_trade as alpaca_execute
+from watcher.position_manager  import PositionManager, IntendedPositionManager
+from trader.trader             import execute_trade as alpaca_execute, close_alpaca_position, move_alpaca_sl
 from trader.oanda_trader       import execute_trade as oanda_execute
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close, partial_close_position as hl_partial_close, _hl_coin, _hl_post
@@ -31,12 +32,14 @@ from trader.xyz_trader         import tv_to_xyz
 from trader.china_trader       import execute_trade as china_execute
 from trader.china_trader       import close_position as china_close
 
-log        = logging.getLogger(__name__)
-classifier = RegimeClassifier()
-manager    = PositionManager()
+log          = logging.getLogger(__name__)
+classifier   = RegimeClassifier()
+manager      = PositionManager()
+intended_mgr = IntendedPositionManager()
 
 _NOTIONAL_BY_GRADE = {"A": 20_000, "B": 10_000}
 _NOTIONAL_DEFAULT  = 10_000
+_MIN_MARGIN_USD    = float(os.getenv("MIN_MARGIN_USD", "500"))
 
 
 def _grade_for(tv_symbol: str) -> str:
@@ -61,13 +64,133 @@ def _notional_for(tv_symbol: str, size: float) -> int:
     log.info(f"[{tv_symbol}] grade={grade}  base=${base:,}  size={size}  notional=${notional:,}")
     return notional
 
+# ─── Margin helpers ──────────────────────────────────────────────────────────
+
+def _margin_needed(pair: str, notional: int) -> float:
+    """Actual margin locked = notional / leverage for HL; notional for others."""
+    prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    if prefix in _CRYPTO_PREFIXES and not tv_to_xyz(pair):
+        try:
+            from trader.hyperliquid_trader import _get_leverage
+            coin = pair.split(":", 1)[1].replace("USDC.P", "")
+            lev  = _get_leverage(coin) or 1
+            return notional / lev
+        except Exception:
+            pass
+    return float(notional)
+
+
+_OANDA_MARGIN_CAP    = 0.45   # block new Oanda entries above this closeout %
+_HL_USAGE_WARN       = 0.60   # Margin Usage % warn threshold
+_HL_USAGE_BLOCK      = 0.80   # Margin Usage % block threshold
+_HL_FROM_LIQ_WARN    = 0.50   # From Liquidation % warn threshold
+_HL_FROM_LIQ_BLOCK   = 0.30   # From Liquidation % block threshold
+
+def _hl_margin_stats(dex: str | None = None) -> dict:
+    """
+    Return HL margin metrics matching the dashboard formulas:
+      margin_usage  = totalMarginUsed / accountValue          (Margin Usage %)
+      from_liq      = (accountValue - crossMaintenanceMarginUsed) / accountValue  (From Liquidation %)
+      free_margin   = max(0, accountValue - totalMarginUsed)
+    """
+    wallet = os.getenv("HL_WALLET_ADDRESS", "")
+    payload = {"type": "clearinghouseState", "user": wallet}
+    if dex:
+        payload["dex"] = dex
+    state  = _hl_post(payload)
+    ms     = state.get("marginSummary", {})
+    acv    = float(ms.get("accountValue", 0))
+    mu     = float(ms.get("totalMarginUsed", 0))
+    maint  = float(state.get("crossMaintenanceMarginUsed", 0))
+    free   = max(acv - mu, 0.0)
+    usage  = mu / acv        if acv else 1.0
+    from_liq = (acv - maint) / acv if acv else 0.0
+    return {"acv": acv, "margin_used": mu, "maint_used": maint,
+            "free": free, "margin_usage": usage, "from_liq": from_liq}
+
+
+def _oanda_available_margin() -> float:
+    """Return 0 if Oanda closeout % >= _OANDA_MARGIN_CAP, else marginAvailable."""
+    try:
+        import urllib.request as _ur
+        key  = os.getenv("OANDA_API_KEY", "")
+        acct = os.getenv("OANDA_ACCOUNT_ID", "")
+        req  = _ur.Request(
+            f"https://api-fxtrade.oanda.com/v3/accounts/{acct}/summary",
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        data    = json.loads(_ur.urlopen(req, timeout=8).read())["account"]
+        pct     = float(data.get("marginCloseoutPercent", 0))
+        avail   = float(data.get("marginAvailable", 0))
+        log.info(f"[OANDA] marginCloseoutPercent={pct:.3f}  marginAvailable=${avail:,.0f}")
+        if pct >= _OANDA_MARGIN_CAP:
+            log.warning(f"[OANDA] ⚠️ Margin closeout at {pct*100:.1f}% >= {_OANDA_MARGIN_CAP*100:.0f}% cap — blocking new forex entries")
+            return 0.0
+        return avail
+    except Exception as e:
+        log.warning(f"[OANDA] margin check error: {e} — blocking new entries to be safe")
+        return 0.0
+
+
+def _available_margin(pair: str) -> float:
+    """Return available margin in USD, or 0 if any safety cap is breached."""
+    prefix = pair.split(":")[0].upper() if ":" in pair else ""
+    try:
+        if tv_to_xyz(pair):
+            stats = _hl_margin_stats(dex="xyz")
+        elif prefix in _CRYPTO_PREFIXES:
+            stats = _hl_margin_stats()
+        elif prefix in _FOREX_PREFIXES:
+            return _oanda_available_margin()
+        else:
+            return float("inf")  # Alpaca paper: no margin gate
+
+        usage    = stats["margin_usage"]
+        from_liq = stats["from_liq"]
+        free     = stats["free"]
+        log.info(f"[{pair}] HL margin: usage={usage*100:.1f}%  from_liq={from_liq*100:.1f}%  free=${free:,.0f}")
+        if usage >= _HL_USAGE_BLOCK or from_liq <= _HL_FROM_LIQ_BLOCK:
+            log.warning(f"[{pair}] 🚨 HL margin critical — usage={usage*100:.1f}% from_liq={from_liq*100:.1f}% — blocking new entries")
+            return 0.0
+        return free
+    except Exception as e:
+        log.warning(f"[{pair}] margin check error: {e} — allowing trade")
+        return float("inf")
+
+
+def retry_pending_margin() -> None:
+    """After a position closes, attempt to open any pending_margin signals that now fit."""
+    pending = intended_mgr.get_pending_margin()
+    if not pending:
+        return
+    min_margin = float(os.getenv("MIN_MARGIN_USD", _MIN_MARGIN_USD))
+    for pair, intended in pending:
+        notional = intended.notional or _notional_for(pair, intended.size)
+        avail    = _available_margin(pair)
+        needed   = _margin_needed(pair, notional)
+        if avail - needed >= min_margin:
+            log.info(f"[{pair}] 💰 MARGIN AVAILABLE — promoting pending "
+                     f"{intended.direction.upper()} (notional=${notional:,} margin=${needed:,.0f} avail=${avail:.0f})")
+            _broker_execute(pair, intended.direction, price=None, notional=notional)
+            manager.open_trade(pair=pair, direction=intended.direction,
+                               entry=intended.signal_price,
+                               tp=intended.tp, sl=intended.sl, atr=intended.atr,
+                               size=intended.size, features=intended.features,
+                               bar_time=intended.bar_time, notional=notional)
+            intended_mgr.remove(pair)
+        else:
+            log.info(f"[{pair}] ⏳ Still pending margin — avail=${avail:.0f} "
+                     f"need=${needed:,.0f} + ${min_margin:.0f} reserve")
+
+
 # Exchange prefix → broker / asset-class routing
-_CRYPTO_PREFIXES  = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
+_CRYPTO_PREFIXES  = {"HYPERLIQUID", "BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
 _FOREX_PREFIXES   = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 _CHINESE_PREFIXES = {"SSE", "SZSE", "HKEX", "SHSE"}   # no broker yet
 
 def _broker_execute(pair: str, direction: str, price: float | None = None,
-                    notional: int = _NOTIONAL_DEFAULT) -> None:
+                    notional: int = _NOTIONAL_DEFAULT, tp: float | None = None,
+                    sl: float | None = None) -> None:
     """Route trade execution to the correct broker based on exchange prefix."""
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if tv_to_xyz(pair):
@@ -81,7 +204,7 @@ def _broker_execute(pair: str, direction: str, price: float | None = None,
     elif prefix in _FOREX_PREFIXES:
         oanda_execute(pair, direction, price=price, notional=notional)
     else:
-        alpaca_execute(pair, direction, price=price, notional=notional)
+        alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
 
 # ─── Signal / Exit Maps ───────────────────────────────────────────────────────
 
@@ -179,9 +302,14 @@ def _broker_move_sl(pair: str, new_sl: float) -> None:
     if not trade:
         return
     try:
-        if pair.upper().startswith(_XYZ_PREFIX):
-            coin = pair.replace("XYZ:", "xyz:")
-            xyz_move_sl(coin, new_sl, trade.direction)
+        prefix = pair.split(":")[0].upper() if ":" in pair else ""
+        if prefix not in _CRYPTO_PREFIXES:
+            # Alpaca paper stocks
+            move_alpaca_sl(pair, new_sl, trade.direction)
+            return
+        if tv_to_xyz(pair):
+            xyz_coin = tv_to_xyz(pair)   # returns "xyz:BRENTOIL" etc.
+            xyz_move_sl(xyz_coin, new_sl, trade.direction)
         else:
             # Standard HL perp: use JS-based cancel+replace
             import subprocess, os, json
@@ -236,7 +364,7 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
                                 close_price=mark_price)
             _broker_execute(pair, "long", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="long", entry=mark_price,
-                               tp=old_tp, sl=None, atr=old_atr, size=1.0, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={})
             log.info(f"[{pair}] ✅ Flipped to LONG at {mark_price} notional=${notional:,}")
         elif action == "flip_short":
             log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_short — {cond}@{level}  {note}")
@@ -246,12 +374,12 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
                                 close_price=mark_price)
             _broker_execute(pair, "short", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="short", entry=mark_price,
-                               tp=old_tp, sl=None, atr=old_atr, size=1.0, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={})
             log.info(f"[{pair}] ✅ Flipped to SHORT at {mark_price} notional=${notional:,}")
         elif action == "partial_close":
             fraction = float(trig.get("fraction", 0.5))
             prefix = pair.split(":")[0].upper()
-            if prefix == "BYBIT":
+            if prefix in {"BYBIT", "HYPERLIQUID"}:
                 hl_partial_close(pair, fraction=fraction)
             else:
                 log.warning(f"[{pair}] partial_close trigger not supported for {prefix}")
@@ -293,7 +421,7 @@ def _broker_has_opposite(pair: str, direction: str) -> bool:
 
 
 def _close_broker_position(pair: str) -> None:
-    """Close any open broker position for this pair (used on signal flip)."""
+    """Close any open broker position for this pair (used on signal flip or exit)."""
     if tv_to_xyz(pair):
         xyz_close(pair)
         return
@@ -302,8 +430,11 @@ def _close_broker_position(pair: str) -> None:
         hl_close(pair)
     elif prefix in _CHINESE_PREFIXES:
         china_close(pair)
+    elif prefix in _FOREX_PREFIXES:
+        log.info(f"[{pair}] Forex close delegated to broker SL/TP order")
     else:
-        log.warning(f"[{pair}] Flip close not yet wired for {prefix} — manual close needed")
+        # Alpaca paper stocks — cancel bracket orders then close
+        close_alpaca_position(pair)
 
 
 # ─── Entry Handler ────────────────────────────────────────────────────────────
@@ -341,6 +472,8 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
         # Broker has an untracked opposite position (e.g. opened by a prior session)
         log.info(f"[{pair}] 🔄 FLIP (broker-detected) — closing stale opposite → {direction.upper()}")
         _close_broker_position(pair)
+        manager.close_trade(pair, reason="broker_detected_flip",
+                            close_price=_safe_float(raw.get("close")))
         is_flip = True
 
     # Compute whipsaw regardless — used for sizing even on flips
@@ -387,20 +520,36 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     # Always use Jingda's pre-calculated levels from the chart.
     # Pine Script auto-detects multipliers via syminfo.type, so chart and
     # broker orders stay identical across stocks, forex, and crypto.
-    tp = _safe_float(raw.get("TP Level"))
-    sl = _safe_float(raw.get("SL Level"))
+    tp = _safe_float(raw.get("TP Level")) or None
+    sl = _safe_float(raw.get("SL Level")) or None
 
     notional = _notional_for(pair, size)
 
+    # Record signal intent before any broker interaction.
+    intended_mgr.add(pair=pair, direction=direction, signal_price=entry,
+                     tp=tp, sl=sl, atr=atr, size=size, notional=notional,
+                     features=features, bar_time=raw.get("bar_time"))
+
+    # Gate 6: Margin check (use actual margin locked = notional / leverage)
+    avail  = _available_margin(pair)
+    needed = _margin_needed(pair, notional)
+    if avail - needed < _MIN_MARGIN_USD:
+        log.warning(f"[{pair}] ⚠️ MARGIN INSUFFICIENT — "
+                    f"need ${needed:,.0f} + ${_MIN_MARGIN_USD:.0f} reserve, have ${avail:.0f}")
+        intended_mgr.mark_pending_margin(pair, margin_required=notional)
+        return
+
     log.info(f"[{pair}] ✅ NEW {direction.upper()} | "
-             f"entry={entry:.5f} tp={tp:.5f} sl={sl:.5f} "
+             f"entry={entry:.5f} tp={tp} sl={sl} "
              f"atr={atr:.5f} pred={pred:.0f} size={size} notional=${notional:,} rules={rule_level}")
 
+    # Execute on broker first; only write to position_state on success.
+    _broker_execute(pair, direction, price=entry if entry else None, notional=notional, tp=tp, sl=sl)
     manager.open_trade(pair=pair, direction=direction, entry=entry,
                        tp=tp, sl=sl, atr=atr, size=size,
-                       features=features, bar_time=raw.get("bar_time"))
-
-    _broker_execute(pair, direction, price=entry if entry else None, notional=notional)
+                       features=features, bar_time=raw.get("bar_time"),
+                       notional=notional)
+    intended_mgr.remove(pair)
 
 
 # ─── Exit Handler ─────────────────────────────────────────────────────────────
@@ -415,10 +564,16 @@ def handle_exit(pair: str, event: str, features: dict, raw: dict) -> None:
         direction = "long" if event == "tp_hit_long" else "short"
         tp_price  = _safe_float(raw.get("TP Level"))
         log.info(f"[{pair}] 🎯 TP HIT {direction.upper()} at {tp_price:.5f}")
-        log.info(f"[{pair}] Closing 50% at TP — runner continues")
-        # Partial close: Alpaca doesn't support fractional close on stocks easily;
-        # log it and let the runner exit close the full position.
 
+        prefix = pair.split(":")[0].upper() if ":" in pair else ""
+        if prefix not in _CRYPTO_PREFIXES:
+            # Stocks/forex: close fully at TP (bracket order may have already closed it)
+            _close_broker_position(pair)
+            manager.close_trade(pair, reason="tp_hit", close_price=tp_price)
+            retry_pending_margin()
+            return
+
+        log.info(f"[{pair}] Closing 50% at TP — runner continues")
         post_tp = {
             "f1_rsi14":    features.get("f1_rsi14"),
             "f2_wt":       features.get("f2_wt"),
@@ -439,15 +594,29 @@ def handle_exit(pair: str, event: str, features: dict, raw: dict) -> None:
         direction = "long" if event == "sl_hit_long" else "short"
         sl_price  = _safe_float(raw.get("SL Level"))
         log.info(f"[{pair}] ❌ SL HIT {direction.upper()} at {sl_price:.5f}")
-        _broker_execute(pair, "short" if direction == "long" else "long",
-                        price=sl_price)   # close by flipping direction
+        prefix = pair.split(":")[0].upper() if ":" in pair else ""
+        if prefix in _CRYPTO_PREFIXES:
+            # For crypto: verify position still exists before executing.
+            # Exchange-side SL orders may have already closed the position.
+            broker_dir = _broker_position_dir(pair)
+            if broker_dir is not None:
+                _broker_execute(pair, "short" if direction == "long" else "long",
+                                price=sl_price)
+            else:
+                log.info(f"[{pair}] Position already closed on exchange — state sync only")
+        else:
+            # Stocks/forex: just close; broker stop order may have already executed it
+            _close_broker_position(pair)
         manager.close_trade(pair, reason="sl_hit", close_price=sl_price)
+        retry_pending_margin()
 
     elif event in ("long_runner_exit", "short_runner_exit"):
         direction   = "long" if event == "long_runner_exit" else "short"
         close_price = _safe_float(raw.get("close"))
         log.info(f"[{pair}] 🔚 RUNNER EXIT {direction.upper()} at {close_price:.5f}")
+        _close_broker_position(pair)
         manager.close_trade(pair, reason="runner_exit", close_price=close_price)
+        retry_pending_margin()
 
 
 # ─── Runner Manager ───────────────────────────────────────────────────────────
@@ -468,10 +637,12 @@ def handle_runner(pair: str, direction: str, regime: str,
     elif regime == "CONSOLIDATION":
         log.info(f"[{pair}] ⏸️  CONSOLIDATION — closing runner")
         manager.close_trade(pair, reason="consolidation", close_price=tp_price)
+        retry_pending_margin()
 
     elif regime == "REVERSAL":
         log.info(f"[{pair}] 🔄 REVERSAL — closing runner")
         manager.close_trade(pair, reason="reversal", close_price=tp_price)
+        retry_pending_margin()
         if confidence >= 0.70:
             opposite = "long" if direction == "short" else "short"
             log.info(f"[{pair}] 💡 High-conf reversal — flagging {opposite.upper()}")
@@ -479,6 +650,7 @@ def handle_runner(pair: str, direction: str, regime: str,
     else:  # MIXED
         log.info(f"[{pair}] ❓ MIXED — closing conservatively")
         manager.close_trade(pair, reason="mixed", close_price=tp_price)
+        retry_pending_margin()
 
 
 # ─── Whipsaw Scoring ──────────────────────────────────────────────────────────
