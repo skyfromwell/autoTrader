@@ -106,13 +106,22 @@ def execute_trade(tv_symbol: str, direction: str, price: float | None = None,
         return {"success": False, "error": str(e)}
 
 
-def close_position(tv_symbol: str) -> dict:
-    """Close all units of an open Oanda position."""
+def close_position(tv_symbol: str, units: int | str = "ALL",
+                   direction: str | None = None) -> dict:
+    """Close an Oanda position. Pass units + direction to close only part of it
+    (e.g. a software-managed remainder left over after the FIFO safeguard
+    blocked a broker-side TP/SL on a same-size trade)."""
     instrument = _oanda_instrument(tv_symbol)
-    log.info(f"[OANDA] closing {instrument}")
+    units_str  = str(units)
+    if direction is None:
+        body = {"longUnits": "ALL", "shortUnits": "ALL"}
+    elif direction.lower() in ("long", "buy"):
+        body = {"longUnits": units_str}
+    else:
+        body = {"shortUnits": units_str}
+    log.info(f"[OANDA] closing {instrument}  {body}")
     try:
-        result = _request("PUT", f"/accounts/{_ACCOUNT}/positions/{instrument}/close",
-                          {"longUnits": "ALL", "shortUnits": "ALL"})
+        result = _request("PUT", f"/accounts/{_ACCOUNT}/positions/{instrument}/close", body)
         return {"success": True, "raw": result}
     except Exception as e:
         log.error(f"[OANDA] close failed: {e}")

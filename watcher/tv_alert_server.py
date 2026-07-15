@@ -143,6 +143,110 @@ def _oanda_live_position(pair: str) -> str | None:
         return None
 
 
+# Forex TP/SL convention when an alert doesn't supply one — matches
+# jingda_ai_v2.pine's auto TP/SL for forex (_autoTp=5.5, _autoSl=2.5).
+_FOREX_SL_ATR_MULT = 2.5
+_FOREX_TP_ATR_MULT = 5.5
+
+
+def _oanda_atr(pair: str, period: int = 14, granularity: str = "H4") -> float | None:
+    """14-period ATR from Oanda H4 candles (true range average)."""
+    try:
+        instrument = _oanda_instrument(pair)
+        r = oanda_request("GET", f"/instruments/{instrument}/candles"
+                          f"?count={period + 1}&granularity={granularity}&price=M")
+        candles = [c for c in r["candles"] if c["complete"]]
+        trs, prev_close = [], None
+        for c in candles:
+            h, l, cl = float(c["mid"]["h"]), float(c["mid"]["l"]), float(c["mid"]["c"])
+            tr = (h - l) if prev_close is None else max(h - l, abs(h - prev_close), abs(l - prev_close))
+            trs.append(tr)
+            prev_close = cl
+        trs = trs[-period:]
+        return sum(trs) / len(trs) if trs else None
+    except Exception as e:
+        log.warning(f"[{pair}] ATR fetch failed: {e}")
+        return None
+
+
+def _forex_tp_sl_fallback(pair: str, direction: str, price: float) -> tuple[float | None, float | None]:
+    """Compute a TP/SL when the alert didn't supply one, so no forex trade opens naked."""
+    atr = _oanda_atr(pair)
+    if atr is None:
+        return None, None
+    if direction == "long":
+        return price + _FOREX_TP_ATR_MULT * atr, price - _FOREX_SL_ATR_MULT * atr
+    return price - _FOREX_TP_ATR_MULT * atr, price + _FOREX_SL_ATR_MULT * atr
+
+
+def _oanda_move_sl(pair: str, new_sl: float) -> None:
+    """Push a new SL to every broker-linked trade for this instrument. Skips
+    trades with no existing stopLossOrder — those are software-managed
+    (FIFO-blocked), where a position_state.json update is the whole story;
+    forex_sl_tp_watcher.py reads the new sl straight from there."""
+    try:
+        instrument = _oanda_instrument(pair)
+        r = oanda_request("GET", f"/accounts/{_OANDA_ACCOUNT}/trades"
+                          f"?instrument={instrument}&state=OPEN")
+        sl_str = f"{new_sl:.3f}" if "JPY" in instrument else f"{new_sl:.5f}"
+        moved = 0
+        for t in r.get("trades", []):
+            if not t.get("stopLossOrder"):
+                continue
+            oanda_request("PUT", f"/accounts/{_OANDA_ACCOUNT}/trades/{t['id']}/orders",
+                          {"stopLoss": {"price": sl_str, "timeInForce": "GTC"}})
+            moved += 1
+        log.info(f"[{pair}] Oanda SL moved → {sl_str} on {moved} broker-linked trade(s)")
+    except Exception as e:
+        log.warning(f"[{pair}] Oanda SL move failed: {e}")
+
+
+# SL-ratchet fractions per tier — see feedback_sl_move_rule: 25% progress → BE,
+# 50% → the 25% level, 75% → the 50% level. Only ever tightens, never loosens.
+_SUB_TP_RATCHET = {1: 0.0, 2: 0.25, 3: 0.50}
+
+
+def _handle_sub_tp(pair: str, payload: AlertPayload) -> dict:
+    trade = manager.get_trade(pair)
+    if not trade or trade.closed:
+        log.info(f"[TV→] {pair} sub_tp tier={payload.tier} — no open trade, ignoring")
+        return {"skipped": True, "reason": "no_open_trade"}
+
+    fraction = _SUB_TP_RATCHET.get(payload.tier)
+    if fraction is None:
+        return {"skipped": True, "reason": f"unknown_tier_{payload.tier}"}
+
+    # Use the position's own recorded entry/tp, not the chart's momentary
+    # values — our entry can be a blend of multiple fills, and tp may already
+    # be an ATR-recomputed protective level rather than what this bar's chart
+    # signal shows. See project_jingda_close_tphit_unwired.
+    entry, tp = trade.entry, trade.tp
+    if tp is None:
+        log.warning(f"[{pair}] sub_tp tier={payload.tier} — no tp recorded, skipping ratchet")
+        return {"skipped": True, "reason": "no_tp_recorded"}
+
+    new_sl = entry + fraction * (tp - entry) if trade.direction == "long" \
+        else entry - fraction * (entry - tp)
+
+    if trade.sl is not None:
+        tighter = (trade.direction == "long" and new_sl <= trade.sl) or \
+                  (trade.direction == "short" and new_sl >= trade.sl)
+        if tighter:
+            return {"skipped": True, "reason": "sl_already_better"}
+
+    log.info(f"[{pair}] 🪜 SUB-TP tier={payload.tier} ({fraction:.0%} level) — "
+             f"SL {trade.sl} → {new_sl:.5f}")
+    manager.move_sl(pair, new_sl, reason=f"sub_tp_tier{payload.tier}")
+
+    if _prefix(pair) in _FOREX_PREFIXES:
+        _oanda_move_sl(pair, new_sl)
+    else:
+        log.info(f"[{pair}] sub_tp ratchet — local state only "
+                 f"(no broker SL-move wired for this asset class yet)")
+
+    return {"moved": True, "new_sl": round(new_sl, 5)}
+
+
 def _hl_live_position(pair: str) -> str | None:
     """Return 'long'|'short' if pair has a live position on Hyperliquid, else None."""
     p = _prefix(pair)
@@ -233,17 +337,27 @@ def _dequeue(pair: str) -> None:
 class AlertPayload(BaseModel):
     pair:      str
     action:    Optional[str]   = None  # open_long|open_short|close|close_and_flip|move_sl|partial_close
+    event:     Optional[str]   = None  # tp_hit|close|sub_tp|kernel_bullish|kernel_bearish (informational, jingda_ai_v2.pine)
     signal:    Optional[int]   = None  # 1=long, -1=short  (SSE/SZSE signal alerts)
     timeframe: Optional[str]   = None  # "30"|"60"|"240"|"D"  (required with signal)
     direction: Optional[str]   = None  # for close_and_flip: new direction
     value:     Optional[float] = None  # new SL price (move_sl / partial_close)
     fraction:  float           = 2/3   # for partial_close
-    price:     Optional[float] = None  # bar close price  {{close}}
-    tp:        Optional[float] = None  # take-profit price from Jingda signal
-    sl:        Optional[float] = None  # stop-loss price from Jingda signal
+    price:     Optional[float] = None  # bar close price  {{close}}  (legacy / plain-text alerts)
+    tp:        Optional[float] = None  # take-profit price  (legacy)
+    sl:        Optional[float] = None  # stop-loss price  (legacy)
     atr:       Optional[float] = None  # ATR at signal bar
     notional:  int             = _NOTIONAL_DEFAULT
     note:      Optional[str]   = None
+    # jingda_ai_v2.pine's current alert schema — chart_ prefix makes it explicit
+    # these are chart-side values, which may not match the broker-authoritative
+    # entry/tp/sl once multiple fills or manual overrides are involved.
+    chart_entry_price: Optional[float] = None
+    chart_tp:          Optional[float] = None
+    chart_sl:          Optional[float] = None
+    chart_close_price: Optional[float] = None
+    tier:              Optional[int]   = None   # sub_tp: 1|2|3 (25%/50%/75% progress)
+    chart_progress:    Optional[float] = None   # sub_tp: tp progress fraction at fire time
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -358,7 +472,7 @@ async def receive_alert(
         raise HTTPException(422, str(e))
 
     pair     = payload.pair.upper()
-    price    = payload.price
+    price    = payload.chart_entry_price if payload.chart_entry_price is not None else payload.price
     note     = payload.note or ""
     p        = _prefix(pair)
     is_china = p in _CHINESE_PREFIXES
@@ -406,6 +520,18 @@ async def receive_alert(
 
         raise HTTPException(400, f"Unexpected signal value: {signal}")
 
+    # ── Event alerts (informational, jingda_ai_v2.pine) ───────────────────────
+    # tp_hit/close/kernel_* are chart-side only — see project_jingda_close_tphit_unwired:
+    # chart tp/sl != broker-authoritative tp/sl, so they don't drive broker actions.
+    # sub_tp is the one exception: it drives the SL ratchet (feedback_sl_move_rule).
+    if payload.event is not None:
+        event = payload.event.lower()
+        if event == "sub_tp":
+            result = _handle_sub_tp(pair, payload)
+            return {"ok": True, "event": event, "pair": pair, "tier": payload.tier, **result}
+        log.info(f"[TV→] {pair} event={event} — informational only, no broker action")
+        return {"ok": True, "skipped": True, "event": event, "reason": "informational_only"}
+
     # ── Action alerts (all markets) ────────────────────────────────────────────
     if payload.action is None:
         raise HTTPException(400, "Provide either 'action' or 'signal'")
@@ -415,9 +541,19 @@ async def receive_alert(
 
     if action in ("open_long", "open_short"):
         direction = "long" if action == "open_long" else "short"
-        tp  = payload.tp
-        sl  = payload.sl
+        tp  = payload.chart_tp if payload.chart_tp is not None else payload.tp
+        sl  = payload.chart_sl if payload.chart_sl is not None else payload.sl
         atr = payload.atr or 0
+
+        # Plain-text alerts (no JSON tp/sl) would otherwise open a naked forex
+        # trade — fall back to the same 2.5x/5.5x ATR convention jingda uses.
+        if _prefix(pair) in _FOREX_PREFIXES and (tp is None or sl is None) and price:
+            fb_tp, fb_sl = _forex_tp_sl_fallback(pair, direction, price)
+            if fb_tp is not None:
+                tp, sl = fb_tp, fb_sl
+                log.info(f"[TV→] {pair} alert had no tp/sl — ATR fallback applied  tp={tp:.5f}  sl={sl:.5f}")
+            else:
+                log.warning(f"[TV→] {pair} alert had no tp/sl and ATR fallback failed — opening unprotected")
 
         # ── Smart flip logic ──────────────────────────────────────────────────
         existing = manager.get_trade(pair)
@@ -463,9 +599,16 @@ async def receive_alert(
         _broker_close(pair, price or 0)
         manager.close_trade(pair, reason=f"tv_alert_flip_to_{new_dir}@{price}",
                             close_price=price or 0)
-        _broker_open(pair, new_dir, price, payload.notional)
+
+        flip_tp = flip_sl = None
+        if _prefix(pair) in _FOREX_PREFIXES and price:
+            flip_tp, flip_sl = _forex_tp_sl_fallback(pair, new_dir, price)
+            if flip_tp is not None:
+                log.info(f"[TV→] {pair} flip — ATR fallback applied  tp={flip_tp:.5f}  sl={flip_sl:.5f}")
+
+        _broker_open(pair, new_dir, price, payload.notional, tp=flip_tp, sl=flip_sl)
         manager.open_trade(pair, new_dir,
-                           entry=price or 0, tp=None, sl=None, atr=0,
+                           entry=price or 0, tp=flip_tp, sl=flip_sl, atr=0,
                            size=payload.notional, features={})
         log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}")
         return {"ok": True, "action": action, "pair": pair, "new_direction": new_dir}

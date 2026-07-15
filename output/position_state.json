@@ -10,7 +10,8 @@
     "OANDA:EURUSD": 0,
     "OANDA:USDJPY": 0,
     "OANDA:AUDJPY": 0,
-    "OANDA:CADJPY": 0
+    "OANDA:CADJPY": 0,
+    "OANDA:TESTUSD": 0
   },
   "symbol_state": {
     "PIONEX:BRENTOILUSDT.P": {
@@ -22,12 +23,14 @@
       "last_signal_val": 1
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-07-15T05:08:27",
+      "last_pull": "2026-07-15T09:18:50",
       "last_signal": "2026-07-02T08:07:34",
       "last_signal_val": 1
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-07-15T05:08:45"
+      "last_pull": "2026-07-15T09:19:08",
+      "last_signal": "2026-07-15T09:19:08",
+      "last_signal_val": 1
     },
     "BYBIT:ETHUSDC.P": {
       "last_pull": "2026-07-09T17:01:55"
@@ -66,17 +69,17 @@
       "last_pull": "2026-07-09T17:03:07"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-07-15T05:09:21",
+      "last_pull": "2026-07-15T09:19:44",
       "last_signal": "2026-07-13T13:09:32",
       "last_signal_val": 1
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-07-15T05:08:09",
+      "last_pull": "2026-07-15T09:18:32",
       "last_signal": "2026-07-02T08:07:16",
       "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-07-15T05:09:03",
+      "last_pull": "2026-07-15T09:19:26",
       "last_signal": "2026-06-30T08:13:19",
       "last_signal_val": 1
     },
@@ -95,113 +98,115 @@
       "last_pull": "2026-07-14T21:14:46"
     },
     "NYSE:LLY": {
-      "last_pull": "2026-07-14T09:15:40"
+      "last_pull": "2026-07-15T09:15:50"
     },
     "NYSE:DELL": {
-      "last_pull": "2026-07-14T09:13:16"
+      "last_pull": "2026-07-15T09:13:26"
     },
     "NYSE:CAT": {
-      "last_pull": "2026-07-14T09:12:58"
+      "last_pull": "2026-07-15T09:13:08"
     },
     "NYSE:KO": {
-      "last_pull": "2026-07-14T09:15:21"
+      "last_pull": "2026-07-15T09:15:32"
     },
     "NYSE:GS": {
-      "last_pull": "2026-07-14T09:14:09"
+      "last_pull": "2026-07-15T09:14:20",
+      "last_signal": "2026-07-15T09:14:20",
+      "last_signal_val": 1
     },
     "NYSE:MS": {
-      "last_pull": "2026-07-14T09:16:34"
+      "last_pull": "2026-07-15T09:16:44"
     },
     "NYSE:HPE": {
       "last_pull": "2026-07-01T12:56:39"
     },
     "NASDAQ:CSCO": {
-      "last_pull": "2026-07-14T09:09:22",
+      "last_pull": "2026-07-15T09:09:32",
       "last_signal": "2026-07-09T10:12:09",
       "last_signal_val": 1
     },
     "NASDAQ:AAPL": {
-      "last_pull": "2026-07-14T09:08:09",
+      "last_pull": "2026-07-15T09:08:19",
       "last_signal": "2026-07-01T12:57:15",
       "last_signal_val": 1
     },
     "NASDAQ:AMAT": {
-      "last_pull": "2026-07-14T09:08:27"
+      "last_pull": "2026-07-15T09:08:37"
     },
     "NASDAQ:AMD": {
-      "last_pull": "2026-07-14T09:08:46"
+      "last_pull": "2026-07-15T09:08:55"
     },
     "NASDAQ:AMGN": {
-      "last_pull": "2026-07-14T09:09:03"
+      "last_pull": "2026-07-15T09:09:14"
     },
     "NASDAQ:FTNT": {
-      "last_pull": "2026-07-14T09:09:40"
+      "last_pull": "2026-07-15T09:09:50"
     },
     "NASDAQ:KLAC": {
-      "last_pull": "2026-07-14T09:09:57"
+      "last_pull": "2026-07-15T09:10:08"
     },
     "NASDAQ:MNST": {
-      "last_pull": "2026-07-14T09:10:16"
+      "last_pull": "2026-07-15T09:10:26"
     },
     "NASDAQ:PANW": {
-      "last_pull": "2026-07-14T09:10:33"
+      "last_pull": "2026-07-15T09:10:44"
     },
     "NASDAQ:PYPL": {
-      "last_pull": "2026-07-14T09:10:52"
+      "last_pull": "2026-07-15T09:11:02"
     },
     "NASDAQ:REGN": {
-      "last_pull": "2026-07-14T09:11:10"
+      "last_pull": "2026-07-15T09:11:20"
     },
     "NASDAQ:SBUX": {
-      "last_pull": "2026-07-14T09:11:28"
+      "last_pull": "2026-07-15T09:11:38"
     },
     "NASDAQ:VRTX": {
-      "last_pull": "2026-07-14T09:11:45"
+      "last_pull": "2026-07-15T09:11:56"
     },
     "NYSE:ABT": {
-      "last_pull": "2026-07-14T09:12:03"
+      "last_pull": "2026-07-15T09:12:14"
     },
     "NYSE:AXP": {
-      "last_pull": "2026-07-14T09:12:22"
+      "last_pull": "2026-07-15T09:12:32"
     },
     "NYSE:BAC": {
-      "last_pull": "2026-07-14T09:12:40"
+      "last_pull": "2026-07-15T09:12:50"
     },
     "NYSE:DHR": {
-      "last_pull": "2026-07-14T09:13:33"
+      "last_pull": "2026-07-15T09:13:44"
     },
     "NYSE:GE": {
-      "last_pull": "2026-07-14T09:13:51"
+      "last_pull": "2026-07-15T09:14:02"
     },
     "NYSE:HD": {
-      "last_pull": "2026-07-14T09:14:28"
+      "last_pull": "2026-07-15T09:14:38"
     },
     "NYSE:JNJ": {
-      "last_pull": "2026-07-14T09:14:46"
+      "last_pull": "2026-07-15T09:14:56"
     },
     "NYSE:JPM": {
-      "last_pull": "2026-07-14T09:15:03"
+      "last_pull": "2026-07-15T09:15:14"
     },
     "NYSE:MA": {
-      "last_pull": "2026-07-14T09:15:57"
+      "last_pull": "2026-07-15T09:16:08"
     },
     "NYSE:MRK": {
-      "last_pull": "2026-07-14T09:16:15"
+      "last_pull": "2026-07-15T09:16:26"
     },
     "NYSE:RTX": {
-      "last_pull": "2026-07-14T09:16:52"
+      "last_pull": "2026-07-15T09:17:02"
     },
     "NYSE:TMO": {
-      "last_pull": "2026-07-14T09:17:10"
+      "last_pull": "2026-07-15T09:17:20"
     },
     "NYSE:UNH": {
-      "last_pull": "2026-07-14T09:17:28"
+      "last_pull": "2026-07-15T09:17:38"
     },
     "NYSE:V": {
-      "last_pull": "2026-07-14T09:17:45"
+      "last_pull": "2026-07-15T09:17:56"
     },
     "NYSE:WFC": {
-      "last_pull": "2026-07-14T09:18:03"
+      "last_pull": "2026-07-15T09:18:14"
     },
     "SSE:600028": {
       "last_pull": "2026-07-14T21:09:40",
@@ -279,55 +284,61 @@
       "last_pull": "2026-07-14T21:15:58"
     },
     "HYPERLIQUID:BTCUSDC.P": {
-      "last_pull": "2026-07-15T05:02:03"
+      "last_pull": "2026-07-15T09:02:02"
     },
     "HYPERLIQUID:ETHUSDC.P": {
-      "last_pull": "2026-07-15T05:03:05",
+      "last_pull": "2026-07-15T09:03:04",
       "last_signal": "2026-07-14T09:03:05",
       "last_signal_val": 1
     },
     "HYPERLIQUID:HBARUSDC.P": {
-      "last_pull": "2026-07-15T05:04:07"
+      "last_pull": "2026-07-15T09:04:06"
     },
     "HYPERLIQUID:HYPEUSDC.P": {
-      "last_pull": "2026-07-15T05:04:25",
+      "last_pull": "2026-07-15T09:04:24",
       "last_signal": "2026-07-14T21:04:25",
       "last_signal_val": 1
     },
     "HYPERLIQUID:INJUSDC.P": {
-      "last_pull": "2026-07-15T05:04:43",
+      "last_pull": "2026-07-15T09:04:42",
       "last_signal": "2026-07-14T01:04:42",
       "last_signal_val": 1
     },
     "HYPERLIQUID:LINKUSDC.P": {
-      "last_pull": "2026-07-15T05:05:01"
+      "last_pull": "2026-07-15T09:05:11"
     },
     "HYPERLIQUID:NEARUSDC.P": {
-      "last_pull": "2026-07-15T05:05:19",
+      "last_pull": "2026-07-15T09:05:29",
       "last_signal": "2026-07-14T01:05:18",
       "last_signal_val": 1
     },
     "HYPERLIQUID:ONDOUSDC.P": {
-      "last_pull": "2026-07-15T05:05:37"
+      "last_pull": "2026-07-15T09:05:47",
+      "last_signal": "2026-07-15T09:05:47",
+      "last_signal_val": 1
     },
     "HYPERLIQUID:RENDERUSDC.P": {
-      "last_pull": "2026-07-15T05:05:55"
+      "last_pull": "2026-07-15T09:06:05",
+      "last_signal": "2026-07-15T09:06:05",
+      "last_signal_val": 1
     },
     "HYPERLIQUID:SOLUSDC.P": {
-      "last_pull": "2026-07-15T05:06:57",
+      "last_pull": "2026-07-15T09:07:07",
       "last_signal": "2026-07-15T01:06:56",
       "last_signal_val": 1
     },
     "HYPERLIQUID:SUIUSDC.P": {
-      "last_pull": "2026-07-15T05:07:15",
+      "last_pull": "2026-07-15T09:07:25",
       "last_signal": "2026-07-14T21:07:15",
       "last_signal_val": 1
     },
     "HYPERLIQUID:XLMUSDC.P": {
-      "last_pull": "2026-07-15T05:07:33"
+      "last_pull": "2026-07-15T09:07:43",
+      "last_signal": "2026-07-15T09:07:43",
+      "last_signal_val": 1
     },
     "HYPERLIQUID:XRPUSDC.P": {
-      "last_pull": "2026-07-15T05:07:51",
+      "last_pull": "2026-07-15T09:08:01",
       "last_signal": "2026-07-14T09:07:51",
       "last_signal_val": 1
     },
@@ -340,8 +351,8 @@
       "pair": "OANDA:AUDUSD",
       "direction": "long",
       "entry": 0.68951,
-      "tp": null,
-      "sl": null,
+      "tp": 0.70604,
+      "sl": 0.69115,
       "atr": 0,
       "size": 200000,
       "notional": 0,
@@ -360,16 +371,18 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "OANDA:NZDUSD": {
       "pair": "OANDA:NZDUSD",
       "direction": "long",
-      "entry": 0.57932,
-      "tp": null,
-      "sl": null,
+      "entry": 0.57893,
+      "tp": 0.5921,
+      "sl": 0.57363,
       "atr": 0,
-      "size": 110000,
+      "size": 20000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -386,33 +399,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
-    },
-    "OANDA:EURJPY": {
-      "pair": "OANDA:EURJPY",
-      "direction": "short",
-      "entry": 185.023,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-12T22:51:37",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "software",
+      "software_watch_units": 20000
     },
     "OANDA:USDCHF": {
       "pair": "OANDA:USDCHF",
@@ -438,7 +427,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:EURAUD": {
       "pair": "OANDA:EURAUD",
@@ -464,7 +455,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:NZDJPY": {
       "pair": "OANDA:NZDJPY",
@@ -490,7 +483,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:FCX": {
       "pair": "BATS:FCX",
@@ -516,14 +511,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:AUDNZD": {
       "pair": "OANDA:AUDNZD",
       "direction": "long",
       "entry": 1.20046,
-      "tp": null,
-      "sl": null,
+      "tp": 1.21603,
+      "sl": 1.19338,
       "atr": 0,
       "size": 10000,
       "notional": 0,
@@ -542,7 +539,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "OANDA:GBPJPY": {
       "pair": "OANDA:GBPJPY",
@@ -568,7 +567,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:AMAT": {
       "pair": "BATS:AMAT",
@@ -594,7 +595,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:AXP": {
       "pair": "BATS:AXP",
@@ -620,7 +623,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:GE": {
       "pair": "BATS:GE",
@@ -646,7 +651,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:KLAC": {
       "pair": "BATS:KLAC",
@@ -672,7 +679,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:LLY": {
       "pair": "BATS:LLY",
@@ -698,7 +707,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:PANW": {
       "pair": "BATS:PANW",
@@ -724,7 +735,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:PYPL": {
       "pair": "BATS:PYPL",
@@ -750,7 +763,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:TMO": {
       "pair": "BATS:TMO",
@@ -776,7 +791,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:VRTX": {
       "pair": "BATS:VRTX",
@@ -802,7 +819,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:RENDERUSDC.P": {
       "pair": "HYPERLIQUID:RENDERUSDC.P",
@@ -828,7 +847,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:XRPUSDC.P": {
       "pair": "HYPERLIQUID:XRPUSDC.P",
@@ -854,14 +875,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:ONDOUSDC.P": {
       "pair": "HYPERLIQUID:ONDOUSDC.P",
       "direction": "long",
       "entry": 0.31682,
-      "tp": null,
-      "sl": null,
+      "tp": 0.3886,
+      "sl": 0.3126,
       "atr": 0,
       "size": 1.0,
       "notional": 0,
@@ -880,7 +903,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "HYPERLIQUID:HYPEUSDC.P": {
       "pair": "HYPERLIQUID:HYPEUSDC.P",
@@ -906,7 +931,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:SOLUSDC.P": {
       "pair": "HYPERLIQUID:SOLUSDC.P",
@@ -932,14 +959,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:USDCNH": {
       "pair": "OANDA:USDCNH",
       "direction": "short",
       "entry": 6.77032,
-      "tp": null,
-      "sl": null,
+      "tp": 6.7671,
+      "sl": 6.8079,
       "atr": 0,
       "size": 20000,
       "notional": 0,
@@ -958,7 +987,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "software",
+      "software_watch_units": 20000
     },
     "HYPERLIQUID:INJUSDC.P": {
       "pair": "HYPERLIQUID:INJUSDC.P",
@@ -984,7 +1015,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:GB30Y": {
       "pair": "TVC:GB30Y",
@@ -1010,7 +1043,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:GB10Y": {
       "pair": "TVC:GB10Y",
@@ -1036,14 +1071,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:EURGBP": {
       "pair": "OANDA:EURGBP",
       "direction": "long",
       "entry": 0.85422,
-      "tp": null,
-      "sl": null,
+      "tp": 0.85374,
+      "sl": 0.84179,
       "atr": 0,
       "size": 20000,
       "notional": 0,
@@ -1062,7 +1099,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "software",
+      "software_watch_units": 20000
     },
     "HYPERLIQUID:NEARUSDC.P": {
       "pair": "HYPERLIQUID:NEARUSDC.P",
@@ -1110,7 +1149,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": 2.3935,
-      "manual_sl": 1.8416
+      "manual_sl": 1.8416,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:HBARUSDC.P": {
       "pair": "HYPERLIQUID:HBARUSDC.P",
@@ -1136,14 +1177,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:GBPAUD": {
       "pair": "OANDA:GBPAUD",
       "direction": "short",
       "entry": 1.92482,
-      "tp": null,
-      "sl": null,
+      "tp": 1.91041,
+      "sl": 1.94605,
       "atr": 0,
       "size": 10000,
       "notional": 0,
@@ -1162,7 +1205,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "BATS:MU": {
       "pair": "BATS:MU",
@@ -1188,7 +1233,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:VZ": {
       "pair": "BATS:VZ",
@@ -1214,7 +1261,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:QCOM": {
       "pair": "BATS:QCOM",
@@ -1240,7 +1289,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:NFLX": {
       "pair": "BATS:NFLX",
@@ -1266,7 +1317,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:RTX": {
       "pair": "BATS:RTX",
@@ -1292,7 +1345,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:DELL": {
       "pair": "BATS:DELL",
@@ -1318,7 +1373,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:TSLA": {
       "pair": "BATS:TSLA",
@@ -1344,7 +1401,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:HPE": {
       "pair": "BATS:HPE",
@@ -1370,7 +1429,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:DJI": {
       "pair": "TVC:DJI",
@@ -1396,7 +1457,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:AMGN": {
       "pair": "BATS:AMGN",
@@ -1422,7 +1485,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:GBPUSD": {
       "pair": "OANDA:GBPUSD",
@@ -1448,7 +1513,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:DXY": {
       "pair": "TVC:DXY",
@@ -1474,7 +1541,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:MS": {
       "pair": "BATS:MS",
@@ -1500,7 +1569,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:GS": {
       "pair": "BATS:GS",
@@ -1526,7 +1597,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "FX:GBPNZD": {
       "pair": "FX:GBPNZD",
@@ -1552,7 +1625,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:ETHUSDC.P": {
       "pair": "HYPERLIQUID:ETHUSDC.P",
@@ -1578,7 +1653,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:LINKUSDC.P": {
       "pair": "HYPERLIQUID:LINKUSDC.P",
@@ -1604,7 +1681,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:JP30Y": {
       "pair": "TVC:JP30Y",
@@ -1630,14 +1709,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:USDCAD": {
       "pair": "OANDA:USDCAD",
       "direction": "short",
       "entry": 1.40894,
-      "tp": null,
-      "sl": null,
+      "tp": 1.39524,
+      "sl": 1.41497,
       "atr": 0,
       "size": 10000,
       "notional": 0,
@@ -1656,7 +1737,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "BINANCE:BONKUSDT": {
       "pair": "BINANCE:BONKUSDT",
@@ -1682,7 +1765,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:US05Y": {
       "pair": "TVC:US05Y",
@@ -1708,7 +1793,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:BTCUSDC.P": {
       "pair": "HYPERLIQUID:BTCUSDC.P",
@@ -1734,14 +1821,16 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "OANDA:AUDJPY": {
       "pair": "OANDA:AUDJPY",
       "direction": "long",
       "entry": 112.836,
-      "tp": null,
-      "sl": null,
+      "tp": 114.119,
+      "sl": 112.253,
       "atr": 0,
       "size": 10000,
       "notional": 0,
@@ -1760,7 +1849,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0
     },
     "TVC:US30Y": {
       "pair": "TVC:US30Y",
@@ -1786,7 +1877,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:US02Y": {
       "pair": "TVC:US02Y",
@@ -1812,7 +1905,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:US10Y": {
       "pair": "TVC:US10Y",
@@ -1838,7 +1933,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:SUIUSDC.P": {
       "pair": "HYPERLIQUID:SUIUSDC.P",
@@ -1864,7 +1961,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "TVC:US20Y": {
       "pair": "TVC:US20Y",
@@ -1890,7 +1989,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:MNTUSDC.P": {
       "pair": "HYPERLIQUID:MNTUSDC.P",
@@ -1916,7 +2017,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "HYPERLIQUID:TAOUSDC.P": {
       "pair": "HYPERLIQUID:TAOUSDC.P",
@@ -1942,7 +2045,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BINANCE:FLOKIUSDT": {
       "pair": "BINANCE:FLOKIUSDT",
@@ -1968,7 +2073,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:MSTR": {
       "pair": "BATS:MSTR",
@@ -1994,7 +2101,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:CAT": {
       "pair": "BATS:CAT",
@@ -2020,7 +2129,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:UNH": {
       "pair": "BATS:UNH",
@@ -2046,7 +2157,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     },
     "BATS:MRK": {
       "pair": "BATS:MRK",
@@ -2072,7 +2185,9 @@
       "watcher_tp": null,
       "watcher_sl": null,
       "manual_tp": null,
-      "manual_sl": null
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     }
   }
 }
