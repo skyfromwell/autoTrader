@@ -5,7 +5,13 @@
 // Volume confirmation filter, candlestick protection, whipsaw detection
 
 //@version=6
-indicator('Jingda New AI v2', 'JingdaAIv2', true, precision=4, max_labels_count=500)
+
+// Bump this on every edit and check it against the webhook log / chart legend
+// to confirm the deployed script actually matches this file — Pine Editor
+// saves don't push automatically, so this is the only reliable version check.
+const string SCRIPT_VERSION = "2026-07-15a-subtp"
+
+indicator('Jingda New AI v2 [' + SCRIPT_VERSION + ']', 'JingdaAIv2 ' + SCRIPT_VERSION, true, precision=4, max_labels_count=500)
 
 import jdehorty/MLExtensions/2 as ml
 import jdehorty/KernelFunctions/2 as kernels
@@ -491,14 +497,14 @@ f2s(float v) => str.tostring(math.round(v, 5))
 longCloseReason  = endLongSL  ? "sl_hit" : endLongOnFlip  ? "signal_flip" : "runner_exit"
 shortCloseReason = endShortSL ? "sl_hit" : endShortOnFlip ? "signal_flip" : "runner_exit"
 
-longOpenMsg   = '{"action":"open_long","pair":"'  + syminfo.prefix + ':' + syminfo.ticker + '","chart_entry_price":' + f2s(close) + ',"chart_tp":' + f2s(close + atr * tpAtrMult) + ',"chart_sl":' + f2s(close - atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + '}'
-shortOpenMsg  = '{"action":"open_short","pair":"' + syminfo.prefix + ':' + syminfo.ticker + '","chart_entry_price":' + f2s(close) + ',"chart_tp":' + f2s(close - atr * tpAtrMult) + ',"chart_sl":' + f2s(close + atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + '}'
+longOpenMsg   = '{"action":"open_long","pair":"'  + syminfo.prefix + ':' + syminfo.ticker + '","chart_entry_price":' + f2s(close) + ',"chart_tp":' + f2s(close + atr * tpAtrMult) + ',"chart_sl":' + f2s(close - atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"script_version":"' + SCRIPT_VERSION + '"}'
+shortOpenMsg  = '{"action":"open_short","pair":"' + syminfo.prefix + ':' + syminfo.ticker + '","chart_entry_price":' + f2s(close) + ',"chart_tp":' + f2s(close - atr * tpAtrMult) + ',"chart_sl":' + f2s(close + atr * slAtrMult) + ',"atr":' + f2s(atr) + ',"timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"script_version":"' + SCRIPT_VERSION + '"}'
 
-tpHitLongMsg  = '{"event":"tp_hit","direction":"long","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_tp":' + f2s(tpLevel) + ',"chart_entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
-tpHitShortMsg = '{"event":"tp_hit","direction":"short","pair":"'  + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_tp":' + f2s(tpLevel) + ',"chart_entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5}'
+tpHitLongMsg  = '{"event":"tp_hit","direction":"long","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_tp":' + f2s(tpLevel) + ',"chart_entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_low":' + f2s(pivotSlopeLow) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5,"script_version":"' + SCRIPT_VERSION + '"}'
+tpHitShortMsg = '{"event":"tp_hit","direction":"short","pair":"'  + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_tp":' + f2s(tpLevel) + ',"chart_entry_price":' + f2s(entryPrice) + ',"atr_now":' + f2s(atr) + ',"atr_ratio":' + f2s(atrRatioAtTP) + ',"f1_rsi14":' + f2s(featureSeries.f1) + ',"f2_wt":' + f2s(featureSeries.f2) + ',"f3_cci":' + f2s(featureSeries.f3) + ',"f4_adx":' + f2s(featureSeries.f4) + ',"f5_rsi9":' + f2s(featureSeries.f5) + ',"pivot_slope_high":' + f2s(pivotSlopeHigh) + ',"ema_distance":' + f2s(emaDistance) + ',"runner_size":0.5,"script_version":"' + SCRIPT_VERSION + '"}'
 
-closeLongMsg  = '{"event":"close","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_close_price":' + f2s(close) + ',"reason":"' + longCloseReason  + '"}'
-closeShortMsg = '{"event":"close","direction":"short","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_close_price":' + f2s(close) + ',"reason":"' + shortCloseReason + '"}'
+closeLongMsg  = '{"event":"close","direction":"long","pair":"'    + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_close_price":' + f2s(close) + ',"reason":"' + longCloseReason  + '","script_version":"' + SCRIPT_VERSION + '"}'
+closeShortMsg = '{"event":"close","direction":"short","pair":"'   + syminfo.ticker + '","timeframe":"' + timeframe.period + '","bar_time":' + str.tostring(time) + ',"chart_close_price":' + f2s(close) + ',"reason":"' + shortCloseReason + '","script_version":"' + SCRIPT_VERSION + '"}'
 
 // ---- Sub-TP tier tracking (SL ratchet triggers) ----
 var bool sub1Fired = false
@@ -515,7 +521,7 @@ subTP2 = (inLongTrade or inShortTrade) and not sub2Fired and tpProgress >= 0.50
 subTP3 = (inLongTrade or inShortTrade) and not sub3Fired and tpProgress >= 0.75
 
 subTpMsg(int tier) =>
-    '{"event":"sub_tp","tier":' + str.tostring(tier) + ',"direction":"' + (inLongTrade ? "long" : "short") + '","pair":"' + syminfo.ticker + '","chart_progress":' + f2s(tpProgress) + ',"chart_entry_price":' + f2s(entryPrice) + ',"chart_tp":' + f2s(tpLevel) + ',"bar_time":' + str.tostring(time) + '}'
+    '{"event":"sub_tp","tier":' + str.tostring(tier) + ',"direction":"' + (inLongTrade ? "long" : "short") + '","pair":"' + syminfo.ticker + '","chart_progress":' + f2s(tpProgress) + ',"chart_entry_price":' + f2s(entryPrice) + ',"chart_tp":' + f2s(tpLevel) + ',"bar_time":' + str.tostring(time) + ',"script_version":"' + SCRIPT_VERSION + '"}'
 
 // ---- Fire alerts ----
 if startLongTrade and barstate.isconfirmed

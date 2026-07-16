@@ -195,7 +195,11 @@ def retry_pending_margin() -> None:
         if avail - needed >= min_margin:
             log.info(f"[{pair}] 💰 MARGIN AVAILABLE — promoting pending "
                      f"{intended.direction.upper()} (notional=${notional:,} margin=${needed:,.0f} avail=${avail:.0f})")
-            _broker_execute(pair, intended.direction, price=None, notional=notional)
+            ok = _broker_execute(pair, intended.direction, price=None, notional=notional,
+                                tp=intended.tp, sl=intended.sl)
+            if not ok:
+                log.error(f"[{pair}] ❌ retry_pending_margin broker execute failed — leaving pending")
+                continue
             manager.open_trade(pair=pair, direction=intended.direction,
                                entry=intended.signal_price,
                                tp=intended.tp, sl=intended.sl, atr=intended.atr,
@@ -214,21 +218,30 @@ _CHINESE_PREFIXES = {"SSE", "SZSE", "HKEX", "SHSE"}   # no broker yet
 
 def _broker_execute(pair: str, direction: str, price: float | None = None,
                     notional: int = _NOTIONAL_DEFAULT, tp: float | None = None,
-                    sl: float | None = None) -> None:
-    """Route trade execution to the correct broker based on exchange prefix."""
+                    sl: float | None = None) -> bool:
+    """Route trade execution to the correct broker based on exchange prefix.
+
+    Returns whether the broker confirms the order succeeded — callers must
+    check this before recording the trade in position_state.json, otherwise
+    a rejected/failed order still gets tracked as if it were live (this is
+    exactly how HYPERLIQUID:XRPUSDC.P etc. ended up as phantom positions:
+    the return value was previously discarded entirely).
+    """
     prefix = pair.split(":")[0].upper() if ":" in pair else ""
     if tv_to_xyz(pair):
-        xyz_execute(pair, direction, price=price, notional=notional)
-        return
+        res = xyz_execute(pair, direction, price=price, notional=notional)
+        return not (isinstance(res, dict) and res.get("skipped"))
     if prefix in _CHINESE_PREFIXES:
-        china_execute(pair, direction, price=price or 0, notional=notional)
-        return
+        res = china_execute(pair, direction, price=price or 0, notional=notional)
+        return bool(res)
     if prefix in _CRYPTO_PREFIXES:
-        hl_execute(pair, direction, price=price, notional=notional)
+        res = hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(res.get("success"))
     elif prefix in _FOREX_PREFIXES:
-        oanda_execute(pair, direction, price=price, notional=notional)
+        res = oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(res.get("success"))
     else:
-        alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl))
 
 # ─── Signal / Exit Maps ───────────────────────────────────────────────────────
 
@@ -568,7 +581,10 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
              f"atr={atr:.5f} pred={pred:.0f} size={size} notional=${notional:,} rules={rule_level}")
 
     # Execute on broker first; only write to position_state on success.
-    _broker_execute(pair, direction, price=entry if entry else None, notional=notional, tp=tp, sl=sl)
+    ok = _broker_execute(pair, direction, price=entry if entry else None, notional=notional, tp=tp, sl=sl)
+    if not ok:
+        log.error(f"[{pair}] ❌ broker execute failed — not recording position_state")
+        return
     manager.open_trade(pair=pair, direction=direction, entry=entry,
                        tp=tp, sl=sl, atr=atr, size=size,
                        features=features, bar_time=raw.get("bar_time"),

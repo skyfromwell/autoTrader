@@ -423,6 +423,27 @@ class PositionManager:
                         elif float(sh.get("units", 0)) < 0:
                             oanda_live[instr] = {"direction": "short", "entry": float(sh["averagePrice"]), "units": float(sh["units"])}
 
+                    # tp/sl per instrument, from each open trade's linked orders —
+                    # a pair can have multiple trade tickets (FIFO-safeguard splits),
+                    # so collect every tp/sl actually resting on the broker for it.
+                    oanda_tpsl: dict[str, dict] = {}
+                    try:
+                        treq = urllib.request.Request(
+                            f"{oanda_url}/accounts/{oanda_acct}/openTrades",
+                            headers={"Authorization": f"Bearer {oanda_key}"},
+                        )
+                        with urllib.request.urlopen(treq, timeout=8) as r:
+                            trades_data = __import__("json").loads(r.read())
+                        for t in trades_data.get("trades", []):
+                            instr = "OANDA:" + t["instrument"].replace("_", "")
+                            entry = oanda_tpsl.setdefault(instr, {"tp": set(), "sl": set()})
+                            if t.get("takeProfitOrder"):
+                                entry["tp"].add(float(t["takeProfitOrder"]["price"]))
+                            if t.get("stopLossOrder"):
+                                entry["sl"].add(float(t["stopLossOrder"]["price"]))
+                    except Exception as e:
+                        log.warning(f"[reconcile] OANDA openTrades (tp/sl) check failed: {e}")
+
                     for pair, trade in list(self._trades.items()):
                         if not pair.startswith("OANDA:") or trade.closed:
                             continue
@@ -431,15 +452,31 @@ class PositionManager:
                                            "state_dir": trade.direction})
                             log.warning(f"[reconcile] {pair} — in state but NOT on OANDA; auto-closing")
                             self.close_trade(pair, reason="reconcile_not_on_broker", close_price=trade.entry)
-                        else:
-                            real = oanda_live[pair]
-                            if trade.direction != real["direction"]:
-                                issues.append({"pair": pair, "issue": "direction_mismatch",
-                                               "state": trade.direction, "exchange": real["direction"]})
-                                log.warning(f"[reconcile] {pair} direction mismatch state={trade.direction} oanda={real['direction']}; fixing")
-                                trade.direction = real["direction"]
-                                trade.entry     = real["entry"]
-                                self._save()
+                            continue
+
+                        real = oanda_live[pair]
+                        if trade.direction != real["direction"]:
+                            issues.append({"pair": pair, "issue": "direction_mismatch",
+                                           "state": trade.direction, "exchange": real["direction"]})
+                            log.warning(f"[reconcile] {pair} direction mismatch state={trade.direction} oanda={real['direction']}; fixing")
+                            trade.direction = real["direction"]
+                            trade.entry     = real["entry"]
+                            self._save()
+
+                        # Report-only: which tp/sl is "right" when a pair has multiple
+                        # trade tickets isn't always obvious, so flag rather than auto-fix.
+                        broker_tpsl = oanda_tpsl.get(pair)
+                        if broker_tpsl and (broker_tpsl["tp"] or broker_tpsl["sl"]):
+                            if trade.tp is not None and broker_tpsl["tp"] and \
+                               not any(abs(trade.tp - x) < 0.001 for x in broker_tpsl["tp"]):
+                                issues.append({"pair": pair, "issue": "tp_mismatch",
+                                               "state": trade.tp, "broker": sorted(broker_tpsl["tp"])})
+                                log.warning(f"[reconcile] {pair} tp mismatch state={trade.tp} broker={sorted(broker_tpsl['tp'])}")
+                            if trade.sl is not None and broker_tpsl["sl"] and \
+                               not any(abs(trade.sl - x) < 0.001 for x in broker_tpsl["sl"]):
+                                issues.append({"pair": pair, "issue": "sl_mismatch",
+                                               "state": trade.sl, "broker": sorted(broker_tpsl["sl"])})
+                                log.warning(f"[reconcile] {pair} sl mismatch state={trade.sl} broker={sorted(broker_tpsl['sl'])}")
                 except Exception as e:
                     log.warning(f"[reconcile] OANDA check failed: {e}")
 
@@ -501,15 +538,23 @@ class PositionManager:
                 state_dir  = trade.direction
                 real_dir   = "long" if real_szi > 0 else "short"
 
+                fixed = False
                 if state_dir != real_dir:
                     issues.append({"pair": pair, "issue": "direction_mismatch",
                                    "state": state_dir, "exchange": real_dir})
-                    log.warning(f"[reconcile] {pair} direction mismatch: state={state_dir} exchange={real_dir}")
+                    log.warning(f"[reconcile] {pair} direction mismatch: state={state_dir} exchange={real_dir}; fixing")
+                    trade.direction = real_dir
+                    fixed = True
 
                 if abs(real_entry - trade.entry) / max(trade.entry, 1e-9) > 0.001:
                     issues.append({"pair": pair, "issue": "entry_mismatch",
                                    "state": trade.entry, "exchange": real_entry})
-                    log.warning(f"[reconcile] {pair} entry mismatch: state={trade.entry} exchange={real_entry}")
+                    log.warning(f"[reconcile] {pair} entry mismatch: state={trade.entry} exchange={real_entry}; fixing")
+                    trade.entry = real_entry
+                    fixed = True
+
+                if fixed:
+                    self._save()
 
             # Pairs on exchange but missing from state
             all_hl  = {_coin(p): p for p in self._trades
