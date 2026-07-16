@@ -461,6 +461,14 @@ class PositionManager:
                             log.warning(f"[reconcile] {pair} direction mismatch state={trade.direction} oanda={real['direction']}; fixing")
                             trade.direction = real["direction"]
                             trade.entry     = real["entry"]
+                            # tp/sl were computed for the OLD direction — stale and
+                            # direction-inverted now, so don't carry them forward.
+                            if trade.tp is not None or trade.sl is not None:
+                                issues.append({"pair": pair, "issue": "tp_sl_cleared_on_direction_fix",
+                                               "old_tp": trade.tp, "old_sl": trade.sl})
+                                log.warning(f"[reconcile] {pair} clearing stale tp={trade.tp} sl={trade.sl}")
+                            trade.tp = trade.sl = trade.watcher_tp = trade.watcher_sl = None
+                            trade.manual_tp = trade.manual_sl = None
                             self._save()
 
                         # Report-only: which tp/sl is "right" when a pair has multiple
@@ -544,6 +552,17 @@ class PositionManager:
                                    "state": state_dir, "exchange": real_dir})
                     log.warning(f"[reconcile] {pair} direction mismatch: state={state_dir} exchange={real_dir}; fixing")
                     trade.direction = real_dir
+                    # tp/sl were computed for the OLD direction — e.g. a tp
+                    # below entry is correct for a short but backwards (and
+                    # silently naked-looking) for a long. Clear rather than
+                    # carry stale, direction-inverted levels forward.
+                    if trade.tp is not None or trade.sl is not None:
+                        issues.append({"pair": pair, "issue": "tp_sl_cleared_on_direction_fix",
+                                       "old_tp": trade.tp, "old_sl": trade.sl})
+                        log.warning(f"[reconcile] {pair} clearing stale tp={trade.tp} sl={trade.sl} "
+                                    f"(computed for {state_dir}, now {real_dir})")
+                    trade.tp = trade.sl = trade.watcher_tp = trade.watcher_sl = None
+                    trade.manual_tp = trade.manual_sl = None
                     fixed = True
 
                 if abs(real_entry - trade.entry) / max(trade.entry, 1e-9) > 0.001:

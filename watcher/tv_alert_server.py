@@ -65,7 +65,7 @@ CHINA_NOTIONAL    = int(os.getenv("CHINA_NOTIONAL_CNY", "50000"))
 CHINA_PENDING_DIR = Path("output/china_pending")
 _NOTIONAL_DEFAULT = 10_000
 
-_CRYPTO_PREFIXES   = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "PIONEX", "BLOFIN"}
+_CRYPTO_PREFIXES   = {"HYPERLIQUID", "BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
 _FOREX_PREFIXES    = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 _CHINESE_PREFIXES  = {"SSE", "SZSE", "HKEX", "SHSE"}
 _VALID_TIMEFRAMES  = {"30", "60", "240", "D"}
@@ -99,16 +99,22 @@ def _prefix(pair: str) -> str:
 
 
 def _broker_open(pair: str, direction: str, price: float | None, notional: int,
-                 tp: float | None = None, sl: float | None = None) -> None:
+                 tp: float | None = None, sl: float | None = None) -> bool:
+    """Returns whether the broker confirms the order succeeded — callers must
+    check this before recording the trade in position_state.json, otherwise
+    a rejected/misrouted order still gets tracked as if it were live."""
     p = _prefix(pair)
     if p in _CRYPTO_PREFIXES:
-        hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        res = hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(res.get("success"))
     elif p in _FOREX_PREFIXES:
-        oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        res = oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(res.get("success"))
     elif p in _CHINESE_PREFIXES:
-        china_execute(pair, direction, price=price or 0, notional=notional)
+        res = china_execute(pair, direction, price=price or 0, notional=notional)
+        return bool(res)
     else:
-        alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
+        return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl))
 
 
 def _broker_close(pair: str, price: float = 0) -> None:
@@ -577,7 +583,10 @@ async def receive_alert(
                                     close_price=price or 0)
         # ─────────────────────────────────────────────────────────────────────
 
-        _broker_open(pair, direction, price, payload.notional, tp=tp, sl=sl)
+        ok = _broker_open(pair, direction, price, payload.notional, tp=tp, sl=sl)
+        if not ok:
+            log.error(f"[TV→] ❌ {pair} broker open failed — not recording position_state")
+            return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, direction,
                            entry=price or 0, tp=tp, sl=sl, atr=atr,
                            size=payload.notional, features={})
@@ -606,7 +615,10 @@ async def receive_alert(
             if flip_tp is not None:
                 log.info(f"[TV→] {pair} flip — ATR fallback applied  tp={flip_tp:.5f}  sl={flip_sl:.5f}")
 
-        _broker_open(pair, new_dir, price, payload.notional, tp=flip_tp, sl=flip_sl)
+        ok = _broker_open(pair, new_dir, price, payload.notional, tp=flip_tp, sl=flip_sl)
+        if not ok:
+            log.error(f"[TV→] ❌ {pair} flip broker open failed — not recording position_state")
+            return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, new_dir,
                            entry=price or 0, tp=flip_tp, sl=flip_sl, atr=0,
                            size=payload.notional, features={})

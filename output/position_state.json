@@ -28,12 +28,12 @@
       "last_signal_val": 1
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-07-15T17:08:26",
+      "last_pull": "2026-07-16T13:12:43",
       "last_signal": "2026-07-15T17:08:26",
       "last_signal_val": 1
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-07-15T17:08:44",
+      "last_pull": "2026-07-16T13:13:01",
       "last_signal": "2026-07-15T13:08:55",
       "last_signal_val": 1
     },
@@ -74,17 +74,17 @@
       "last_pull": "2026-07-09T17:03:07"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-07-15T17:09:20",
+      "last_pull": "2026-07-16T13:13:37",
       "last_signal": "2026-07-13T13:09:32",
       "last_signal_val": 1
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-07-15T17:08:08",
+      "last_pull": "2026-07-16T13:12:25",
       "last_signal": "2026-07-02T08:07:16",
       "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-07-15T17:09:02",
+      "last_pull": "2026-07-16T13:13:19",
       "last_signal": "2026-06-30T08:13:19",
       "last_signal_val": 1
     },
@@ -327,27 +327,27 @@
       "last_signal_val": 1
     },
     "HYPERLIQUID:RENDERUSDC.P": {
-      "last_pull": "2026-07-15T17:05:54",
+      "last_pull": "2026-07-16T13:10:11",
       "last_signal": "2026-07-15T09:06:05",
       "last_signal_val": 1
     },
     "HYPERLIQUID:SOLUSDC.P": {
-      "last_pull": "2026-07-15T17:06:56",
+      "last_pull": "2026-07-16T13:11:12",
       "last_signal": "2026-07-15T01:06:56",
       "last_signal_val": 1
     },
     "HYPERLIQUID:SUIUSDC.P": {
-      "last_pull": "2026-07-15T17:07:14",
+      "last_pull": "2026-07-16T13:11:31",
       "last_signal": "2026-07-14T21:07:15",
       "last_signal_val": 1
     },
     "HYPERLIQUID:XLMUSDC.P": {
-      "last_pull": "2026-07-15T17:07:32",
+      "last_pull": "2026-07-16T13:11:49",
       "last_signal": "2026-07-15T09:07:43",
       "last_signal_val": 1
     },
     "HYPERLIQUID:XRPUSDC.P": {
-      "last_pull": "2026-07-15T17:07:50",
+      "last_pull": "2026-07-16T13:12:07",
       "last_signal": "2026-07-14T09:07:51",
       "last_signal_val": 1
     },
@@ -1760,8 +1760,8 @@
       "pair": "HYPERLIQUID:NEARUSDC.P",
       "direction": "long",
       "entry": 1.9228,
-      "tp": 1.85925,
-      "sl": 2.09238,
+      "tp": 2.16515,
+      "sl": 1.81264,
       "atr": 0.02119,
       "size": 10000,
       "notional": 0,
@@ -1777,8 +1777,8 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [],
-      "watcher_tp": 1.85925,
-      "watcher_sl": 2.09238,
+      "watcher_tp": null,
+      "watcher_sl": null,
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
@@ -2043,6 +2043,34 @@
       "price_triggers": [],
       "watcher_tp": 98.07259,
       "watcher_sl": 114.2837,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
+    },
+    "HYPERLIQUID:HYPEUSDC.P": {
+      "pair": "HYPERLIQUID:HYPEUSDC.P",
+      "direction": "short",
+      "entry": 62.522,
+      "tp": 50.89462,
+      "sl": 66.52752,
+      "atr": 1.42117,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-16T13:18:48",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 50.89462,
+      "watcher_sl": 66.52752,
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
