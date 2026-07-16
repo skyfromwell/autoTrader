@@ -88,10 +88,22 @@ _HL_FROM_LIQ_BLOCK   = 0.30   # From Liquidation % block threshold
 
 def _hl_margin_stats(dex: str | None = None) -> dict:
     """
-    Return HL margin metrics matching the dashboard formulas:
-      margin_usage  = totalMarginUsed / accountValue          (Margin Usage %)
-      from_liq      = (accountValue - crossMaintenanceMarginUsed) / accountValue  (From Liquidation %)
-      free_margin   = max(0, accountValue - totalMarginUsed)
+    Return HL margin metrics matching the dashboard's top-level Account Value /
+    Withdrawable numbers, not just the perps clearinghouseState sub-view.
+
+    clearinghouseState's own "accountValue" only reflects margin actively
+    deployed to positions (~ totalMarginUsed) — it does NOT include the
+    account's undeployed USDC, which is still real, immediately-usable perps
+    collateral (confirmed against the dashboard's "Withdrawable now" figure,
+    2026-07-15: API said accountValue=$2,316/marginUsed=$2,283 i.e. ~100%
+    "used", while the dashboard showed Account Value $8,868 / Withdrawable
+    $6,587 i.e. ~25.7% used — the gap is exactly the undeployed USDC this
+    function was missing). So total capital = perps accountValue + undeployed
+    USDC (spot total minus what's already held/locked).
+
+      margin_usage = totalMarginUsed / total_capital
+      from_liq     = (total_capital - crossMaintenanceMarginUsed) / total_capital
+      free_margin  = max(0, total_capital - totalMarginUsed)
     """
     wallet = os.getenv("HL_WALLET_ADDRESS", "")
     payload = {"type": "clearinghouseState", "user": wallet}
@@ -99,11 +111,23 @@ def _hl_margin_stats(dex: str | None = None) -> dict:
         payload["dex"] = dex
     state  = _hl_post(payload)
     ms     = state.get("marginSummary", {})
-    acv    = float(ms.get("accountValue", 0))
-    mu     = float(ms.get("totalMarginUsed", 0))
-    maint  = float(state.get("crossMaintenanceMarginUsed", 0))
-    free   = max(acv - mu, 0.0)
-    usage  = mu / acv        if acv else 1.0
+    perps_acv = float(ms.get("accountValue", 0))
+    mu        = float(ms.get("totalMarginUsed", 0))
+    maint     = float(state.get("crossMaintenanceMarginUsed", 0))
+
+    spot_free = 0.0
+    try:
+        spot = _hl_post({"type": "spotClearinghouseState", "user": wallet})
+        for b in spot.get("balances", []):
+            if b.get("coin") == "USDC":
+                spot_free = float(b.get("total", 0)) - float(b.get("hold", 0))
+                break
+    except Exception as e:
+        log.warning(f"[HL] spot balance fetch failed, margin check will undercount capital: {e}")
+
+    acv = perps_acv + spot_free
+    free = max(acv - mu, 0.0)
+    usage = mu / acv if acv else 1.0
     from_liq = (acv - maint) / acv if acv else 0.0
     return {"acv": acv, "margin_used": mu, "maint_used": maint,
             "free": free, "margin_usage": usage, "from_liq": from_liq}

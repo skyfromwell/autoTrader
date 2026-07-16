@@ -463,14 +463,26 @@ class PositionManager:
                 if float(ap["position"]["szi"]) != 0
             }
 
+            # Longest/most-specific suffix first — "USD" alone would otherwise
+            # match inside "USDT" and mangle tickers like BONKUSDT → BONKT.
             def _coin(pair: str) -> str:
-                return pair.split(":")[1].replace("USDC.P", "").replace("USD", "").replace(".P", "")
+                base = pair.split(":")[1]
+                for sep in ("USDC.P", "USDT.P", "USDC", "USDT", "USD"):
+                    if sep in base:
+                        return base.split(sep)[0]
+                return base
+
+            # Only these exchanges route through Hyperliquid — everything else
+            # (Alpaca stocks/indices/bonds via BATS/NYSE/NASDAQ/TVC, Oanda forex,
+            # China A-shares) has no HL position to compare against, and checking
+            # them here just produces false "not on exchange" alarms.
+            _HL_ROUTED_PREFIXES = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN",
+                                    "BITMEX", "PIONEX", "BLOFIN", "HYPERLIQUID"}
 
             for pair, trade in self._trades.items():
                 prefix = pair.split(":")[0].upper()
-                if prefix in {"OANDA", "FX", "SSE", "SZSE"}:
-                    continue  # skip non-HL markets for now
-
+                if prefix != "XYZ" and prefix not in _HL_ROUTED_PREFIXES:
+                    continue  # not an HL-routed market — nothing to compare here
                 if prefix == "XYZ":
                     coin   = pair.replace("XYZ:", "xyz:")
                     real   = xyz_pos.get(coin)
@@ -500,8 +512,8 @@ class PositionManager:
                     log.warning(f"[reconcile] {pair} entry mismatch: state={trade.entry} exchange={real_entry}")
 
             # Pairs on exchange but missing from state
-            all_hl  = {_coin(p): p for p in self._trades if "OANDA" not in p and "SSE" not in p
-                       and "SZSE" not in p and "XYZ" not in p}
+            all_hl  = {_coin(p): p for p in self._trades
+                       if p.split(":")[0].upper() in _HL_ROUTED_PREFIXES}
             all_xyz = {p.replace("XYZ:", "xyz:"): p for p in self._trades if "XYZ" in p}
 
             for coin, real in hl_pos.items():
