@@ -103,115 +103,119 @@
       "last_pull": "2026-07-14T21:14:46"
     },
     "NYSE:LLY": {
-      "last_pull": "2026-07-15T09:15:50"
+      "last_pull": "2026-07-16T09:44:32"
     },
     "NYSE:DELL": {
-      "last_pull": "2026-07-15T09:13:26"
+      "last_pull": "2026-07-16T09:42:08"
     },
     "NYSE:CAT": {
-      "last_pull": "2026-07-15T09:13:08"
+      "last_pull": "2026-07-16T09:41:50"
     },
     "NYSE:KO": {
-      "last_pull": "2026-07-15T09:15:32"
+      "last_pull": "2026-07-16T09:44:14"
     },
     "NYSE:GS": {
-      "last_pull": "2026-07-15T09:14:20",
+      "last_pull": "2026-07-16T09:43:02",
       "last_signal": "2026-07-15T09:14:20",
       "last_signal_val": 1
     },
     "NYSE:MS": {
-      "last_pull": "2026-07-15T09:16:44"
+      "last_pull": "2026-07-16T09:45:26"
     },
     "NYSE:HPE": {
       "last_pull": "2026-07-01T12:56:39"
     },
     "NASDAQ:CSCO": {
-      "last_pull": "2026-07-15T09:09:32",
+      "last_pull": "2026-07-16T09:38:14",
       "last_signal": "2026-07-09T10:12:09",
       "last_signal_val": 1
     },
     "NASDAQ:AAPL": {
-      "last_pull": "2026-07-15T09:08:19",
+      "last_pull": "2026-07-16T09:37:02",
       "last_signal": "2026-07-01T12:57:15",
       "last_signal_val": 1
     },
     "NASDAQ:AMAT": {
-      "last_pull": "2026-07-15T09:08:37"
+      "last_pull": "2026-07-16T09:37:20"
     },
     "NASDAQ:AMD": {
-      "last_pull": "2026-07-15T09:08:55"
+      "last_pull": "2026-07-16T09:37:38"
     },
     "NASDAQ:AMGN": {
-      "last_pull": "2026-07-15T09:09:14"
+      "last_pull": "2026-07-16T09:37:55"
     },
     "NASDAQ:FTNT": {
-      "last_pull": "2026-07-15T09:09:50"
+      "last_pull": "2026-07-16T09:38:32"
     },
     "NASDAQ:KLAC": {
-      "last_pull": "2026-07-15T09:10:08"
+      "last_pull": "2026-07-16T09:38:50"
     },
     "NASDAQ:MNST": {
-      "last_pull": "2026-07-15T09:10:26"
+      "last_pull": "2026-07-16T09:39:08"
     },
     "NASDAQ:PANW": {
-      "last_pull": "2026-07-15T09:10:44"
+      "last_pull": "2026-07-16T09:39:26"
     },
     "NASDAQ:PYPL": {
-      "last_pull": "2026-07-15T09:11:02"
+      "last_pull": "2026-07-16T09:39:44"
     },
     "NASDAQ:REGN": {
-      "last_pull": "2026-07-15T09:11:20"
+      "last_pull": "2026-07-16T09:40:01"
     },
     "NASDAQ:SBUX": {
-      "last_pull": "2026-07-15T09:11:38"
+      "last_pull": "2026-07-16T09:40:20"
     },
     "NASDAQ:VRTX": {
-      "last_pull": "2026-07-15T09:11:56"
+      "last_pull": "2026-07-16T09:40:37"
     },
     "NYSE:ABT": {
-      "last_pull": "2026-07-15T09:12:14"
+      "last_pull": "2026-07-16T09:40:56",
+      "last_signal": "2026-07-16T09:40:56",
+      "last_signal_val": 1
     },
     "NYSE:AXP": {
-      "last_pull": "2026-07-15T09:12:32"
+      "last_pull": "2026-07-16T09:41:14"
     },
     "NYSE:BAC": {
-      "last_pull": "2026-07-15T09:12:50"
+      "last_pull": "2026-07-16T09:41:32"
     },
     "NYSE:DHR": {
-      "last_pull": "2026-07-15T09:13:44"
+      "last_pull": "2026-07-16T09:42:26"
     },
     "NYSE:GE": {
-      "last_pull": "2026-07-15T09:14:02"
+      "last_pull": "2026-07-16T09:42:44"
     },
     "NYSE:HD": {
-      "last_pull": "2026-07-15T09:14:38"
+      "last_pull": "2026-07-16T09:43:19"
     },
     "NYSE:JNJ": {
-      "last_pull": "2026-07-15T09:14:56"
+      "last_pull": "2026-07-16T09:43:37"
     },
     "NYSE:JPM": {
-      "last_pull": "2026-07-15T09:15:14"
+      "last_pull": "2026-07-16T09:43:55"
     },
     "NYSE:MA": {
-      "last_pull": "2026-07-15T09:16:08"
+      "last_pull": "2026-07-16T09:44:49"
     },
     "NYSE:MRK": {
-      "last_pull": "2026-07-15T09:16:26"
+      "last_pull": "2026-07-16T09:45:08",
+      "last_signal": "2026-07-16T09:45:08",
+      "last_signal_val": 1
     },
     "NYSE:RTX": {
-      "last_pull": "2026-07-15T09:17:02"
+      "last_pull": "2026-07-16T09:45:44"
     },
     "NYSE:TMO": {
-      "last_pull": "2026-07-15T09:17:20"
+      "last_pull": "2026-07-16T09:46:02"
     },
     "NYSE:UNH": {
-      "last_pull": "2026-07-15T09:17:38"
+      "last_pull": "2026-07-16T09:46:20"
     },
     "NYSE:V": {
-      "last_pull": "2026-07-15T09:17:56"
+      "last_pull": "2026-07-16T09:46:38"
     },
     "NYSE:WFC": {
-      "last_pull": "2026-07-15T09:18:14"
+      "last_pull": "2026-07-16T09:46:55"
     },
     "SSE:600028": {
       "last_pull": "2026-07-14T21:09:40",
@@ -289,36 +293,36 @@
       "last_pull": "2026-07-14T21:15:58"
     },
     "HYPERLIQUID:BTCUSDC.P": {
-      "last_pull": "2026-07-15T17:02:02"
+      "last_pull": "2026-07-16T13:02:03"
     },
     "HYPERLIQUID:ETHUSDC.P": {
-      "last_pull": "2026-07-15T17:03:04",
+      "last_pull": "2026-07-16T13:03:05",
       "last_signal": "2026-07-14T09:03:05",
       "last_signal_val": 1
     },
     "HYPERLIQUID:HBARUSDC.P": {
-      "last_pull": "2026-07-15T17:04:06"
+      "last_pull": "2026-07-16T13:04:07"
     },
     "HYPERLIQUID:HYPEUSDC.P": {
-      "last_pull": "2026-07-15T17:04:24",
+      "last_pull": "2026-07-16T13:04:25",
       "last_signal": "2026-07-14T21:04:25",
       "last_signal_val": 1
     },
     "HYPERLIQUID:INJUSDC.P": {
-      "last_pull": "2026-07-15T17:04:42",
+      "last_pull": "2026-07-16T13:04:43",
       "last_signal": "2026-07-14T01:04:42",
       "last_signal_val": 1
     },
     "HYPERLIQUID:LINKUSDC.P": {
-      "last_pull": "2026-07-15T17:05:00"
+      "last_pull": "2026-07-16T13:05:01"
     },
     "HYPERLIQUID:NEARUSDC.P": {
-      "last_pull": "2026-07-15T17:05:18",
+      "last_pull": "2026-07-16T13:05:19",
       "last_signal": "2026-07-14T01:05:18",
       "last_signal_val": 1
     },
     "HYPERLIQUID:ONDOUSDC.P": {
-      "last_pull": "2026-07-15T17:05:36",
+      "last_pull": "2026-07-16T13:05:37",
       "last_signal": "2026-07-15T09:05:47",
       "last_signal_val": 1
     },
@@ -800,34 +804,6 @@
       "sl_tp_source": null,
       "software_watch_units": 0.0
     },
-    "HYPERLIQUID:HYPEUSDC.P": {
-      "pair": "HYPERLIQUID:HYPEUSDC.P",
-      "direction": "long",
-      "entry": 67.2928,
-      "tp": 77.97,
-      "sl": 63.27,
-      "atr": 0,
-      "size": 5000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-11T17:35:58",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
     "HYPERLIQUID:SOLUSDC.P": {
       "pair": "HYPERLIQUID:SOLUSDC.P",
       "direction": "long",
@@ -999,11 +975,11 @@
     "BATS:VZ": {
       "pair": "BATS:VZ",
       "direction": "long",
-      "entry": 42.49,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
+      "entry": 43.92,
+      "tp": 47.20254,
+      "sl": 42.27873,
+      "atr": 0.82063,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -1028,8 +1004,8 @@
       "pair": "BATS:QCOM",
       "direction": "short",
       "entry": 184.87,
-      "tp": null,
-      "sl": null,
+      "tp": 143.79384,
+      "sl": 185.23308,
       "atr": 0,
       "size": 1.0,
       "notional": 0,
@@ -1139,11 +1115,11 @@
     "BATS:TSLA": {
       "pair": "BATS:TSLA",
       "direction": "short",
-      "entry": 396.1,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
+      "entry": 389.04,
+      "tp": 348.38135,
+      "sl": 409.36932,
+      "atr": 10.16466,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -1670,12 +1646,12 @@
     },
     "BATS:MRK": {
       "pair": "BATS:MRK",
-      "direction": "short",
-      "entry": 120.68,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
+      "direction": "long",
+      "entry": 128.03,
+      "tp": 137.39196,
+      "sl": 123.34902,
+      "atr": 2.34049,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -2043,6 +2019,34 @@
       "manual_sl": null,
       "sl_tp_source": "mixed",
       "software_watch_units": 30000
+    },
+    "BATS:CSCO": {
+      "pair": "BATS:CSCO",
+      "direction": "short",
+      "entry": 108.88,
+      "tp": 98.07259,
+      "sl": 114.2837,
+      "atr": 2.70185,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-16T10:30:19",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 98.07259,
+      "watcher_sl": 114.2837,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0
     }
   }
 }
