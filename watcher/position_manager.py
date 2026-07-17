@@ -242,10 +242,18 @@ class PositionManager:
                         known = {f.name for f in fields(Trade)}
 
                         # File is authoritative: sync all external-edit fields for
-                        # pairs already in memory.
+                        # pairs already in memory — unless the disk record predates
+                        # the in-memory trade's open_time, which means the pair was
+                        # (re)opened after this disk snapshot was written (e.g. a
+                        # stale closed record from before open_trade() ran). Merging
+                        # a pre-reopen snapshot onto a freshly opened trade would
+                        # clobber its direction/entry/closed/etc. with old data.
                         for pair, ext in disk_trades.items():
                             if pair in self._trades:
                                 t = self._trades[pair]
+                                disk_open_time = ext.get("open_time")
+                                if disk_open_time and t.open_time and disk_open_time < t.open_time:
+                                    continue
                                 for fld in _EXTERNAL_EDIT_FIELDS:
                                     if fld in ext:
                                         setattr(t, fld, ext[fld])
