@@ -5,10 +5,11 @@ TV Alert Webhook Server — receives TradingView alerts and executes broker acti
 Run locally:
     python -m watcher.tv_alert_server
 
-China A-share signals queue into output/china_pending/{PAIR}.json; Syncthing
-replicates that folder to the Windows QMT bridge, where
-china_server/china_executor.py polls it continuously and fires each order
-at the next market open — there is no execute-queue step on this side.
+China A-share signals submit over HTTP to qmt_mailbox/mailbox_writer.py's
+relay on the Windows QMT box (watcher/china_queue.py), which drops the
+order into its local inbox for the pasted QMT strategy
+(qmt_mailbox/qmt_mailbox_executor.py) to pick up at the next market open —
+there is no execute-queue step on this side.
 
 Expose via Cloudflare tunnel:
     cloudflared tunnel run autotrader-webhook
@@ -58,8 +59,6 @@ from trader.oanda_trader        import _request as oanda_request, _oanda_instrum
 from trader.oanda_trader        import account_for as _oanda_account_for, account_id_for as _oanda_account_id_for
 from trader.oanda_trader        import margin_status as _oanda_margin_status
 from trader.trader              import execute_trade as alpaca_execute
-from trader.china_trader        import execute_trade as china_execute
-from trader.china_trader        import close_position as china_close
 from trader.xyz_trader          import execute_trade as xyz_execute
 from trader.xyz_trader          import close_position as xyz_close
 from trader.xyz_trader          import move_sl as xyz_move_sl_fn
@@ -196,8 +195,18 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
         res = oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
         return bool(res.get("success"))
     elif p in _CHINESE_PREFIXES:
-        res = china_execute(pair, direction, price=price or 0, notional=notional)
-        return bool(res)
+        # No shorting A-shares, and a long here isn't a live fill yet — it
+        # submits to the QMT mailbox instead (watcher/china_queue.py), same
+        # as every other China entry path. This is a backstop for any
+        # action type (close_and_flip, future additions) that reaches
+        # _broker_open() directly rather than the open_long/open_short
+        # handler's own explicit China branch — always return False so no
+        # caller records an already-open position_state trade off this.
+        if direction == "short":
+            log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
+            return False
+        _queue_order(pair, price or 0, "D", notional, type_="tv_alert")
+        return False
     else:
         return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl))
 
@@ -212,7 +221,7 @@ def _broker_close(pair: str, price: float = 0) -> None:
     elif p in _FOREX_PREFIXES:
         oanda_close(pair)
     elif p in _CHINESE_PREFIXES:
-        china_close(pair)
+        _china_close_order(pair, reason="tv_alert_close")
     else:
         log.warning(f"[{pair}] Alpaca close not wired — manual close needed")
 
@@ -411,25 +420,28 @@ def _broker_live_position(pair: str) -> str | None:
     return None
 
 
-# ── China pending order queue (Syncthing file-based) ─────────────────────────
-# Each pending order is a separate JSON file: output/china_pending/SZSE_000725.json
-# Syncthing replicates the folder to Windows in real time.
-# china_executor.py on Windows watches the folder, executes, then deletes the file.
-# Deletion propagates back via Syncthing — no HTTP polling needed.
-# Shared with screener/china_sma_report.py and watcher/mcp_processor.py so the
-# on-disk format can't drift between the three signal sources again.
+# ── China order submission (QMT mailbox, HTTP-based) ──────────────────────────
+# See watcher/china_queue.py for the full picture: this POSTs to the Windows
+# QMT box's mailbox relay over Tailscale; output/china_pending/ is now local
+# bookkeeping only, not the hand-off mechanism. Shared with
+# screener/china_sma_report.py and watcher/mcp_processor.py so the request
+# format can't drift between the three signal sources again.
 
 from watcher.china_queue import (load_pending as _load_pending,
                                   queue_order as _queue_order_raw,
+                                  close_order as _china_close_order,
                                   dequeue as _dequeue)
 
 
 def _queue_order(pair: str, price: float, timeframe: str, notional: int,
-                 type_: str = "tv_alert") -> None:
-    _queue_order_raw(pair, price, timeframe, notional, type_=type_)
+                 type_: str = "tv_alert") -> dict | None:
+    result = _queue_order_raw(pair, price, timeframe, notional, type_=type_)
+    if result is None:
+        return None
     pending_count = len(list(CHINA_PENDING_DIR.glob("*.json")))
     log.info(f"[Queue] ➕ {pair} ({timeframe})  price={price}  notional=¥{notional:,}  "
              f"({pending_count} total)")
+    return result
 
 
 # ── Payload ───────────────────────────────────────────────────────────────────
@@ -709,10 +721,12 @@ async def receive_alert(
                 return {"ok": True, "skipped": True, "reason": "already_queued",
                         "queued_at": pending[pair]["queued_at"]}
             notional = payload.notional if payload.notional != _NOTIONAL_DEFAULT else CHINA_NOTIONAL
-            _queue_order(pair, price or 0, tf, notional, type_="tv_alert_signal")
+            sent = _queue_order(pair, price or 0, tf, notional, type_="tv_alert_signal")
+            if sent is None:
+                return {"ok": False, "error": "mailbox_unreachable", "pair": pair}
             return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,
-                    "signal_price": price, "notional": notional,
-                    "note": "Will execute at next-day open via the Windows QMT bridge's file watcher"}
+                    "signal_price": price, "notional": notional, "signal_id": sent.get("id"),
+                    "note": "Will execute at next-day open via the QMT mailbox"}
 
         elif signal == -1:
             if has_position:
@@ -754,11 +768,10 @@ async def receive_alert(
         sl  = payload.chart_sl if payload.chart_sl is not None else payload.sl
         atr = payload.atr or 0
 
-        # China A-shares: no shorting, and a long here queues for the next
-        # session's open (Windows QMT bridge polls output/china_pending/)
-        # instead of the immediate-execution / flip logic below, which
-        # doesn't apply — there's no live fill yet, and there's never a
-        # legitimate existing short to flip out of.
+        # China A-shares: no shorting, and a long here submits to the QMT
+        # mailbox instead of the immediate-execution / flip logic below,
+        # which doesn't apply — there's no live fill yet, and there's never
+        # a legitimate existing short to flip out of.
         if is_china:
             if direction == "short":
                 log.warning(f"[TV→] {pair} BLOCKED — cannot short A-shares")
@@ -772,10 +785,12 @@ async def receive_alert(
                         "queued_at": pending[pair]["queued_at"]}
             notional = payload.notional if payload.notional != _NOTIONAL_DEFAULT else CHINA_NOTIONAL
             tf = str(payload.timeframe or "D")
-            _queue_order(pair, price or 0, tf, notional, type_="tv_alert")
+            sent = _queue_order(pair, price or 0, tf, notional, type_="tv_alert")
+            if sent is None:
+                return {"ok": False, "error": "mailbox_unreachable", "pair": pair}
             return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,
-                    "signal_price": price, "notional": notional,
-                    "note": "Will execute at next-day open via the Windows QMT bridge's file watcher"}
+                    "signal_price": price, "notional": notional, "signal_id": sent.get("id"),
+                    "note": "Will execute at next-day open via the QMT mailbox"}
 
         # Plain-text alerts (no JSON tp/sl) would otherwise open a naked forex
         # trade — fall back to the same 2.5x/5.5x ATR convention jingda uses.

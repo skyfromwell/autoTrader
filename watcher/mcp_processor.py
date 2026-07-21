@@ -31,7 +31,6 @@ from trader.xyz_trader         import move_sl as xyz_move_sl
 from trader.xyz_trader         import execute_trade as xyz_execute
 from trader.xyz_trader         import close_position as xyz_close
 from trader.xyz_trader         import tv_to_xyz
-from trader.china_trader       import close_position as china_close
 
 log          = logging.getLogger(__name__)
 classifier   = RegimeClassifier()
@@ -233,18 +232,22 @@ def _broker_execute(pair: str, direction: str, price: float | None = None,
         return not (isinstance(res, dict) and res.get("skipped"))
     if prefix in _CHINESE_PREFIXES:
         # No shorting A-shares, and a long here isn't a live fill yet — it
-        # queues for the next session's open via the Windows QMT bridge's
-        # file poller (watcher/china_queue.py). Always return False so no
-        # caller records this as an already-open position_state trade; the
-        # handle_entry() call site queues explicitly before ever reaching
-        # here, this is just a backstop for the other _broker_execute
-        # call sites (margin-deferred entries, flips, runner exits).
+        # submits to the QMT mailbox (watcher/china_queue.py -> Windows box
+        # over HTTP) for the pasted QMT strategy to pick up. Always return
+        # False so no caller records this as an already-open position_state
+        # trade; the handle_entry() call site queues explicitly before ever
+        # reaching here, this is just a backstop for the other
+        # _broker_execute call sites (margin-deferred entries, flips,
+        # runner exits).
         if direction == "short":
             log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
             return False
         from watcher.china_queue import queue_order as _china_queue_order
-        _china_queue_order(pair, price or 0, "240", notional, type_="watcher_pull")
-        log.info(f"[{pair}] Queued LONG (China, next-session open)")
+        sent = _china_queue_order(pair, price or 0, "240", notional, type_="watcher_pull")
+        if sent is None:
+            log.error(f"[{pair}] ❌ mailbox submit failed — not queued")
+        else:
+            log.info(f"[{pair}] Queued LONG (China, next-session open)  id={sent.get('id')}")
         return False
     if prefix in _CRYPTO_PREFIXES:
         res = hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
@@ -491,7 +494,8 @@ def _close_broker_position(pair: str) -> None:
     if prefix in _CRYPTO_PREFIXES:
         hl_close(pair)
     elif prefix in _CHINESE_PREFIXES:
-        china_close(pair)
+        from watcher.china_queue import close_order as _china_close_order
+        _china_close_order(pair, reason="watcher_exit")
     elif prefix in _FOREX_PREFIXES:
         log.info(f"[{pair}] Forex close delegated to broker SL/TP order")
     else:
@@ -609,19 +613,22 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
              f"entry={entry:.5f} tp={tp} sl={sl} "
              f"atr={atr:.5f} pred={pred:.0f} size={size} notional=${notional:,} rules={rule_level}")
 
-    # China A-shares: no shorting, and a long entry queues for the next
-    # session's open (Windows QMT bridge polls output/china_pending/) rather
-    # than executing immediately — there's no live fill yet at this point,
-    # so don't call manager.open_trade() here.
+    # China A-shares: no shorting, and a long entry submits to the QMT
+    # mailbox (watcher/china_queue.py -> Windows box over HTTP) rather than
+    # executing immediately — there's no live fill yet at this point, so
+    # don't call manager.open_trade() here.
     if pair.split(":")[0].upper() in _CHINESE_PREFIXES:
         if direction == "short":
             log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
             intended_mgr.remove(pair)
             return
         from watcher.china_queue import queue_order as _china_queue_order
-        _china_queue_order(pair, entry or 0, "240", notional,
-                           type_="watcher_pull", reason=f"pred={pred:.0f}")
-        log.info(f"[{pair}] ✅ Queued LONG (China, next-session open) entry≈{entry}")
+        sent = _china_queue_order(pair, entry or 0, "240", notional,
+                                  type_="watcher_pull", reason=f"pred={pred:.0f}")
+        if sent is None:
+            log.error(f"[{pair}] ❌ mailbox submit failed — leaving intended signal queued to retry")
+            return
+        log.info(f"[{pair}] ✅ Queued LONG (China, next-session open)  entry≈{entry}  id={sent.get('id')}")
         intended_mgr.remove(pair)
         return
 

@@ -165,8 +165,12 @@ def update_china_queue(results: list[dict]) -> dict:
                 log.info(f"  ~ {sym}: already in queue — skip")
             else:
                 vol_est = int((CHINA_NOTIONAL // r["price"]) // 100) * 100
-                _queue_order(sym, r["price"], "D", CHINA_NOTIONAL,
-                            type_="sma_gold_cross", reason=r["crossover"])
+                sent = _queue_order(sym, r["price"], "D", CHINA_NOTIONAL,
+                                    type_="sma_gold_cross", reason=r["crossover"])
+                if sent is None:
+                    actions["skipped"].append(sym)
+                    log.warning(f"  ❌ {sym}: mailbox submit failed — will retry next scan")
+                    continue
                 pending[sym] = {"pair": sym}  # just needs to mark "now pending" for this loop
                 actions["queued_long"].append((sym, r["crossover"] or r["trend"],
                                               r["price"], vol_est))
@@ -180,7 +184,8 @@ def update_china_queue(results: list[dict]) -> dict:
 
     log.info(f"China queue: +{len(actions['queued_long'])} new  "
              f"({len(pending)} total pending)  "
-             f"Bear-noted={len(actions['bear_noted'])}")
+             f"Bear-noted={len(actions['bear_noted'])}  "
+             f"MailboxFailed={len(actions['skipped'])}")
     return actions
 
 
