@@ -235,7 +235,12 @@ def move_sl(coin: str, new_sl: float, direction: str) -> dict:
 # ── TV symbol routing ────────────────────────────────────────────────────────
 
 _TV_TO_XYZ: dict[str, str] = {
-    # Hyperliquid TradingView symbols (current)
+    # jingda's current TV prefix for xyz-DEX commodities (as of 2026-07-15a-subtp)
+    "HIP3XYZ:GOLDUSDC.P":         "xyz:GOLD",
+    "HIP3XYZ:SILVERUSDC.P":       "xyz:SILVER",
+    "HIP3XYZ:BRENTOILUSDC.P":     "xyz:BRENTOIL",
+    "HIP3XYZ:CLUSDC.P":           "xyz:CL",
+    # Older Hyperliquid-prefixed TV symbols (kept for backward compat)
     "HYPERLIQUID:GOLDUSDC.P":     "xyz:GOLD",
     "HYPERLIQUID:SILVERUSDC.P":   "xyz:SILVER",
     "HYPERLIQUID:BRENTOILUSDC.P": "xyz:BRENTOIL",

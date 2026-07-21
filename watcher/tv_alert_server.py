@@ -58,6 +58,10 @@ from trader.oanda_trader        import margin_status as _oanda_margin_status
 from trader.trader              import execute_trade as alpaca_execute
 from trader.china_trader        import execute_trade as china_execute
 from trader.china_trader        import close_position as china_close
+from trader.xyz_trader          import execute_trade as xyz_execute
+from trader.xyz_trader          import close_position as xyz_close
+from trader.xyz_trader          import move_sl as xyz_move_sl_fn
+from trader.xyz_trader          import tv_to_xyz
 from watcher.position_manager   import PositionManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s %(message)s")
@@ -174,6 +178,14 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
     """Returns whether the broker confirms the order succeeded — callers must
     check this before recording the trade in position_state.json, otherwise
     a rejected/misrouted order still gets tracked as if it were live."""
+    # xyz DEX commodities (GOLD/SILVER/CL/BRENTOIL) trade under whatever TV
+    # prefix jingda currently sends (HIP3XYZ:, previously HYPERLIQUID:) — check
+    # the symbol mapping before the prefix-based dispatch below, since a stale
+    # prefix would otherwise silently fall through to Alpaca and fail with a
+    # confusing "asset not found" (Alpaca has no idea what "CLUSDC.P" is).
+    if tv_to_xyz(pair):
+        res = xyz_execute(pair, direction, price=price, notional=notional)
+        return bool(res.get("entry")) and not res.get("skipped") and not res.get("error")
     p = _prefix(pair)
     if p in _CRYPTO_PREFIXES:
         res = hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
@@ -189,6 +201,9 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
 
 
 def _broker_close(pair: str, price: float = 0) -> None:
+    if tv_to_xyz(pair):
+        xyz_close(pair)
+        return
     p = _prefix(pair)
     if p in _CRYPTO_PREFIXES:
         hl_close(pair)
@@ -886,12 +901,11 @@ async def receive_alert(
         if not trade:
             raise HTTPException(404, f"No open position for {pair}")
         manager.move_sl(pair, payload.value, reason=f"tv_alert_move_sl@{price}")
-        if p in _CRYPTO_PREFIXES:
-            if pair.upper().startswith("XYZ:"):
-                from trader.xyz_trader import move_sl as xyz_move_sl
-                xyz_move_sl(pair.replace("XYZ:", "xyz:"), payload.value, trade.direction)
-            else:
-                log.info(f"[TV→] HL SL move for {pair} — JS cancel+replace needed")
+        xyz_coin = tv_to_xyz(pair)
+        if xyz_coin:
+            xyz_move_sl_fn(xyz_coin, payload.value, trade.direction)
+        elif p in _CRYPTO_PREFIXES:
+            log.info(f"[TV→] HL SL move for {pair} — JS cancel+replace needed")
         log.info(f"[TV→] ✅ Moved SL {pair} → {payload.value}")
         return {"ok": True, "action": action, "pair": pair, "new_sl": payload.value}
 
