@@ -151,6 +151,27 @@ def move_stop_loss(tv_symbol: str, new_sl: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+def move_take_profit(tv_symbol: str, new_tp: float) -> dict:
+    """Cancel the resting TP trigger order (if any) and place a new one at new_tp."""
+    coin = _hl_coin(tv_symbol)
+    cmd = [_NODE, os.path.abspath(_JS_SCRIPT), coin, "--move-tp", str(new_tp)]
+    log.info(f"[HYPERLIQUID] moving TP {tv_symbol} → {coin} @ {new_tp}")
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=os.path.dirname(os.path.abspath(_JS_SCRIPT)),
+        )
+        data = json.loads(result.stdout.strip() or "{}")
+        if data.get("success"):
+            log.info(f"[HYPERLIQUID] TP moved {coin} → {new_tp}  cancelled={data.get('cancelled')}")
+        else:
+            log.error(f"[HYPERLIQUID] TP move FAILED {coin}: {data.get('error')}")
+        return data
+    except Exception as e:
+        log.error(f"[HYPERLIQUID] move_take_profit exception: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def close_position(tv_symbol: str) -> dict:
     """Close an open Hyperliquid position."""
     coin = _hl_coin(tv_symbol)
