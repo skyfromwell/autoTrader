@@ -66,7 +66,7 @@ def fetch_broker_orders():
     # frontendOpenOrders exposes triggerPx/orderType directly, so TP vs SL is
     # read off the order itself rather than inferred from limitPx (which is
     # just a ±5% execution buffer around the trigger, not the trigger price).
-    for dex_kwargs in ({}, {'dex': 'xyz'}):
+    for dex_kwargs, tv_prefix in (({}, 'HYPERLIQUID'), ({'dex': 'xyz'}, 'HIP3XYZ')):
         try:
             orders = post_hl({'type': 'frontendOpenOrders', 'user': HL_WALLET, **dex_kwargs})
             for o in orders:
@@ -75,7 +75,7 @@ def fetch_broker_orders():
                 raw_coin = o.get('coin', '')
                 # HL XYZ returns coin as "xyz:BRENTOIL" — strip the prefix
                 coin = raw_coin.split(':', 1)[-1]
-                pair = 'HYPERLIQUID:' + coin + 'USDC.P'
+                pair = tv_prefix + ':' + coin + 'USDC.P'
                 confirmed.setdefault(pair, {'tp': None, 'sl': None})
                 trigger_px = float(o.get('triggerPx', 0))
                 order_type = o.get('orderType', '')
@@ -128,7 +128,7 @@ def fetch_all():
 
     # Hyperliquid + XYZ
     hl = {}
-    def parse_hl(state):
+    def parse_hl(state, prefix='HYPERLIQUID'):
         for p in state.get('assetPositions', []):
             pos = p['position']
             raw_coin = pos['coin']
@@ -140,10 +140,14 @@ def fetch_all():
             upnl  = float(pos.get('unrealizedPnl', 0))
             val   = float(pos.get('positionValue', 0))
             mark  = val / abs(szi) if abs(szi) else 0
-            tv = 'HYPERLIQUID:' + coin + 'USDC.P'
+            tv = prefix + ':' + coin + 'USDC.P'
             hl[tv] = ('long' if szi > 0 else 'short', entry, mark, upnl, abs(szi))
     parse_hl(post_hl({'type': 'clearinghouseState', 'user': HL_WALLET}))
-    parse_hl(post_hl({'type': 'clearinghouseState', 'user': HL_WALLET, 'dex': 'xyz'}))
+    # xyz-DEX assets (GOLD/SILVER/CL/BRENTOIL) are tracked in position_state.json
+    # under jingda's HIP3XYZ: prefix, not HYPERLIQUID: — must match or these
+    # positions silently vanish from the display (they're real broker positions,
+    # just never joined against local tp/sl/tracking).
+    parse_hl(post_hl({'type': 'clearinghouseState', 'user': HL_WALLET, 'dex': 'xyz'}), prefix='HIP3XYZ')
 
     return {**oanda, **alpaca, **hl}
 
@@ -236,7 +240,7 @@ def main():
         ('OANDA_LONG:',  'Forex (long/1D account)'),
     ]
     crypto = [(p, t) for p, t in trades.items()
-              if p.startswith(('HYPERLIQUID:', 'BYBIT:', 'COINBASE:', 'XYZ:'))]
+              if p.startswith(('HYPERLIQUID:', 'BYBIT:', 'COINBASE:', 'XYZ:', 'HIP3XYZ:'))]
     paper  = [(p, t) for p, t in trades.items() if p.startswith('BATS:')]
 
     print('\n' + '╔' + '═' * (W - 2) + '╗')

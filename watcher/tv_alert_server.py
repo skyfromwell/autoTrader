@@ -575,7 +575,11 @@ class HlFillPayload(BaseModel):
 
 def _hl_pair_for_coin(coin: str) -> str:
     if coin.startswith("xyz:"):
-        return "XYZ:" + coin[len("xyz:"):]
+        # Matches the key format tv_to_xyz()/_broker_open() actually track
+        # xyz-DEX positions under (HIP3XYZ:{COIN}USDC.P) — this used to build
+        # "XYZ:{COIN}" instead, which never matched any real tracked trade, so
+        # every xyz DEX close silently fell into the "no open trade" branch.
+        return "HIP3XYZ:" + coin[len("xyz:"):] + "USDC.P"
     return "HYPERLIQUID:" + coin + "USDC.P"
 
 

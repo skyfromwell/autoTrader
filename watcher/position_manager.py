@@ -815,10 +815,10 @@ class PositionManager:
                 if trade.closed:
                     continue
                 prefix = pair.split(":")[0].upper()
-                if prefix != "XYZ" and prefix not in _HL_ROUTED_PREFIXES:
+                if prefix not in ("XYZ", "HIP3XYZ") and prefix not in _HL_ROUTED_PREFIXES:
                     continue  # not an HL-routed market — nothing to compare here
-                if prefix == "XYZ":
-                    coin   = pair.replace("XYZ:", "xyz:")
+                if prefix in ("XYZ", "HIP3XYZ"):
+                    coin   = "xyz:" + _coin(pair)
                     real   = xyz_pos.get(coin)
                 else:
                     coin   = _coin(pair)
