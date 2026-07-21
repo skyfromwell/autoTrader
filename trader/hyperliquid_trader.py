@@ -130,6 +130,27 @@ def partial_close_position(tv_symbol: str, fraction: float = 2/3) -> dict:
         return {"success": False, "error": str(e)}
 
 
+def move_stop_loss(tv_symbol: str, new_sl: float) -> dict:
+    """Cancel the resting SL trigger order (if any) and place a new one at new_sl."""
+    coin = _hl_coin(tv_symbol)
+    cmd = [_NODE, os.path.abspath(_JS_SCRIPT), coin, "--move-sl", str(new_sl)]
+    log.info(f"[HYPERLIQUID] moving SL {tv_symbol} → {coin} @ {new_sl}")
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=os.path.dirname(os.path.abspath(_JS_SCRIPT)),
+        )
+        data = json.loads(result.stdout.strip() or "{}")
+        if data.get("success"):
+            log.info(f"[HYPERLIQUID] SL moved {coin} → {new_sl}  cancelled={data.get('cancelled')}")
+        else:
+            log.error(f"[HYPERLIQUID] SL move FAILED {coin}: {data.get('error')}")
+        return data
+    except Exception as e:
+        log.error(f"[HYPERLIQUID] move_stop_loss exception: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def close_position(tv_symbol: str) -> dict:
     """Close an open Hyperliquid position."""
     coin = _hl_coin(tv_symbol)

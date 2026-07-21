@@ -4,3 +4,7 @@ output/
 __pycache__/
 *.pyc
 .DS_Store
+.stfolder/
+*.sync-conflict-*
+*.bak-*
+.env.bak-*

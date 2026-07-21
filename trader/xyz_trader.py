@@ -235,12 +235,18 @@ def move_sl(coin: str, new_sl: float, direction: str) -> dict:
 # ── TV symbol routing ────────────────────────────────────────────────────────
 
 _TV_TO_XYZ: dict[str, str] = {
-    "COINBASE:GOLDUSDC.P":   "xyz:GOLD",
-    "COINBASE:SILVERUSDC.P": "xyz:SILVER",
-    "XYZ:GOLD":   "xyz:GOLD",
-    "XYZ:SILVER": "xyz:SILVER",
-    "XYZ:CL":     "xyz:CL",
-    "XYZ:BRENTOIL": "xyz:BRENTOIL",
+    # Hyperliquid TradingView symbols (current)
+    "HYPERLIQUID:GOLDUSDC.P":     "xyz:GOLD",
+    "HYPERLIQUID:SILVERUSDC.P":   "xyz:SILVER",
+    "HYPERLIQUID:BRENTOILUSDC.P": "xyz:BRENTOIL",
+    "HYPERLIQUID:CLUSDC.P":       "xyz:CL",
+    # Legacy TV symbols (kept for backward compat)
+    "COINBASE:GOLDUSDC.P":        "xyz:GOLD",
+    "COINBASE:SILVERUSDC.P":      "xyz:SILVER",
+    "XYZ:GOLD":                   "xyz:GOLD",
+    "XYZ:SILVER":                 "xyz:SILVER",
+    "XYZ:CL":                     "xyz:CL",
+    "XYZ:BRENTOIL":               "xyz:BRENTOIL",
 }
 
 def tv_to_xyz(tv_pair: str) -> str | None:

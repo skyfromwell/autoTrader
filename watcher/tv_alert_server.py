@@ -38,7 +38,7 @@ from typing import Optional
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -49,9 +49,12 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close
 from trader.hyperliquid_trader import partial_close_position as hl_partial_close
+from trader.hyperliquid_trader import move_stop_loss as hl_move_sl
 from trader.oanda_trader        import execute_trade as oanda_execute
 from trader.oanda_trader        import close_position as oanda_close
-from trader.oanda_trader        import _request as oanda_request, _ACCOUNT as _OANDA_ACCOUNT, _oanda_instrument
+from trader.oanda_trader        import _request as oanda_request, _oanda_instrument
+from trader.oanda_trader        import account_for as _oanda_account_for, account_id_for as _oanda_account_id_for
+from trader.oanda_trader        import margin_status as _oanda_margin_status
 from trader.trader              import execute_trade as alpaca_execute
 from trader.china_trader        import execute_trade as china_execute
 from trader.china_trader        import close_position as china_close
@@ -66,9 +69,77 @@ CHINA_PENDING_DIR = Path("output/china_pending")
 _NOTIONAL_DEFAULT = 10_000
 
 _CRYPTO_PREFIXES   = {"HYPERLIQUID", "BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
-_FOREX_PREFIXES    = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+_FOREX_PREFIXES    = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE",
+                      "OANDA_SHORT", "OANDA_MID", "OANDA_LONG"}
+_FOREX_RAW_PREFIXES = {"OANDA", "FX", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+
+# Forex signals split across 4 OANDA accounts by timeframe (see
+# trader/oanda_trader.py's account split): 1h -> short, 4h -> mid,
+# 1D -> long, anything else -> the original "mix" account (unchanged
+# "OANDA:" prefix, so existing tracked positions need no migration). Each
+# split account gets its own internal pair prefix so the same instrument on
+# two different timeframes never collides as one dict key in
+# position_state.json.
+_FOREX_TIMEFRAME_PREFIX = {
+    "60":  "OANDA_SHORT",
+    "240": "OANDA_MID",
+    "1D":  "OANDA_LONG",
+    "D":   "OANDA_LONG",
+}
+
+
+def _route_forex_account(pair: str, timeframe: str | None) -> str:
+    """Rewrite an OANDA/FX pair to the internal split-account prefix that
+    matches its signal timeframe. No-op for anything that isn't forex, or a
+    timeframe with no dedicated split (stays on the original "mix" account).
+
+    Accounts are independent capital pools, not shared tracking of "the same
+    trade" — a mix-account position on a pair has no bearing on whether
+    short/mid/long should open their own position on that same pair. Always
+    route by timeframe; each account manages its own positions regardless of
+    what any other account is doing on the same instrument.
+    """
+    if _prefix(pair) not in _FOREX_RAW_PREFIXES:
+        return pair
+    new_prefix = _FOREX_TIMEFRAME_PREFIX.get(timeframe)
+    if new_prefix is None:
+        return pair
+    return new_prefix + ":" + pair.split(":", 1)[-1]
 _CHINESE_PREFIXES  = {"SSE", "SZSE", "HKEX", "SHSE"}
 _VALID_TIMEFRAMES  = {"30", "60", "240", "D"}
+
+# The 7 USD majors trade at 50x margin on OANDA vs 20x for crosses — size up
+# accordingly so risk-per-trade (margin used) stays consistent across pairs.
+_FOREX_MAJOR_USD_PAIRS = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD",
+                          "USDJPY", "USDCHF", "USDCAD"}
+
+# Base sizing per split account: (major-pair notional, other-pair notional).
+# short/mid carry more balance ($50k vs mix's ~$22k) and trade more often, so
+# they run 2x mix's sizing. long carries less balance but trades rarely (1D
+# signals), so it just inherits mix's rule unscaled rather than being sized
+# down — infrequent trades don't need throttling the same way.
+_FOREX_ACCOUNT_NOTIONAL = {
+    "mix":   (50_000, _NOTIONAL_DEFAULT),
+    "long":  (50_000, _NOTIONAL_DEFAULT),
+    "short": (100_000, 20_000),
+    "mid":   (100_000, 20_000),
+}
+
+
+def _forex_notional(pair: str, requested: int) -> int:
+    """Scale forex position size by account and USD-major status.
+
+    Only applies when the alert left notional at the generic default — an
+    alert that explicitly requests a different size is always respected.
+    Called after _route_forex_account(), so `pair` already carries whichever
+    split-account prefix this signal resolved to.
+    """
+    if _prefix(pair) not in _FOREX_PREFIXES or requested != _NOTIONAL_DEFAULT:
+        return requested
+    account = _oanda_account_for(pair)
+    major_notional, other_notional = _FOREX_ACCOUNT_NOTIONAL.get(account, _FOREX_ACCOUNT_NOTIONAL["mix"])
+    base = pair.split(":", 1)[-1].upper()
+    return major_notional if base in _FOREX_MAJOR_USD_PAIRS else other_notional
 
 app     = FastAPI(title="TV Alert Webhook")
 manager = PositionManager()
@@ -131,11 +202,13 @@ def _broker_close(pair: str, price: float = 0) -> None:
 
 def _oanda_live_position(pair: str) -> str | None:
     """Return 'long'|'short' if pair has a live position on Oanda, else None."""
-    if not pair.upper().startswith("OANDA:"):
+    if _prefix(pair) not in _FOREX_PREFIXES:
         return None
     try:
         instrument = _oanda_instrument(pair)
-        r = oanda_request("GET", f"/accounts/{_OANDA_ACCOUNT}/positions/{instrument}")
+        account    = _oanda_account_for(pair)
+        acct_id    = _oanda_account_id_for(pair)
+        r = oanda_request("GET", f"/accounts/{acct_id}/positions/{instrument}", account=account)
         pos = r.get("position", {})
         long_units  = float(pos.get("long",  {}).get("units", 0))
         short_units = float(pos.get("short", {}).get("units", 0))
@@ -192,19 +265,38 @@ def _oanda_move_sl(pair: str, new_sl: float) -> None:
     forex_sl_tp_watcher.py reads the new sl straight from there."""
     try:
         instrument = _oanda_instrument(pair)
-        r = oanda_request("GET", f"/accounts/{_OANDA_ACCOUNT}/trades"
-                          f"?instrument={instrument}&state=OPEN")
+        account    = _oanda_account_for(pair)
+        acct_id    = _oanda_account_id_for(pair)
+        r = oanda_request("GET", f"/accounts/{acct_id}/trades"
+                          f"?instrument={instrument}&state=OPEN", account=account)
         sl_str = f"{new_sl:.3f}" if "JPY" in instrument else f"{new_sl:.5f}"
         moved = 0
         for t in r.get("trades", []):
             if not t.get("stopLossOrder"):
                 continue
-            oanda_request("PUT", f"/accounts/{_OANDA_ACCOUNT}/trades/{t['id']}/orders",
-                          {"stopLoss": {"price": sl_str, "timeInForce": "GTC"}})
+            oanda_request("PUT", f"/accounts/{acct_id}/trades/{t['id']}/orders",
+                          {"stopLoss": {"price": sl_str, "timeInForce": "GTC"}}, account=account)
             moved += 1
         log.info(f"[{pair}] Oanda SL moved → {sl_str} on {moved} broker-linked trade(s)")
     except Exception as e:
         log.warning(f"[{pair}] Oanda SL move failed: {e}")
+
+
+def _hl_move_sl(pair: str, new_sl: float) -> None:
+    """Cancel the resting Hyperliquid SL trigger order and place a new one at new_sl."""
+    try:
+        result = hl_move_sl(pair, new_sl)
+        if result.get("success"):
+            trade = manager.get_trade(pair)
+            if trade:
+                trade.sl_tp_source = "broker"
+                manager._save()
+            log.info(f"[{pair}] Hyperliquid SL moved → {new_sl}  "
+                     f"cancelled={result.get('cancelled')}")
+        else:
+            log.warning(f"[{pair}] Hyperliquid SL move failed: {result.get('error')}")
+    except Exception as e:
+        log.warning(f"[{pair}] Hyperliquid SL move exception: {e}")
 
 
 # SL-ratchet fractions per tier — see feedback_sl_move_rule: 25% progress → BE,
@@ -212,11 +304,15 @@ def _oanda_move_sl(pair: str, new_sl: float) -> None:
 _SUB_TP_RATCHET = {1: 0.0, 2: 0.25, 3: 0.50}
 
 
-def _handle_sub_tp(pair: str, payload: AlertPayload) -> dict:
-    trade = manager.get_trade(pair)
+def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: BackgroundTasks) -> dict:
+    trade = manager.find_by_ticker(pair, hint_entry=payload.chart_entry_price)
     if not trade or trade.closed:
         log.info(f"[TV→] {pair} sub_tp tier={payload.tier} — no open trade, ignoring")
         return {"skipped": True, "reason": "no_open_trade"}
+
+    # sub_tp alerts carry the bare ticker; resolve to the full exchange:ticker
+    # key that open_trades is actually keyed by, for move_sl/_oanda_move_sl below.
+    pair = trade.pair
 
     fraction = _SUB_TP_RATCHET.get(payload.tier)
     if fraction is None:
@@ -244,13 +340,23 @@ def _handle_sub_tp(pair: str, payload: AlertPayload) -> dict:
              f"SL {trade.sl} → {new_sl:.5f}")
     manager.move_sl(pair, new_sl, reason=f"sub_tp_tier{payload.tier}")
 
+    # The broker call (cancel + replace a live trigger order) is a network
+    # round-trip that can take several seconds — for HL it shells out to a
+    # Node subprocess. Doing it inline here pushed this handler's response
+    # time past TradingView's webhook timeout on at least one real alert
+    # (the local state and eventual broker order were both still correct;
+    # only TradingView's delivery status showed a false "timed out"). Local
+    # state above is already ratcheted synchronously; defer only the broker
+    # push so the HTTP response returns immediately.
     if _prefix(pair) in _FOREX_PREFIXES:
-        _oanda_move_sl(pair, new_sl)
+        background_tasks.add_task(_oanda_move_sl, pair, new_sl)
+    elif _prefix(pair) in _CRYPTO_PREFIXES:
+        background_tasks.add_task(_hl_move_sl, pair, new_sl)
     else:
         log.info(f"[{pair}] sub_tp ratchet — local state only "
                  f"(no broker SL-move wired for this asset class yet)")
 
-    return {"moved": True, "new_sl": round(new_sl, 5)}
+    return {"moved": True, "new_sl": round(new_sl, 5), "broker_sync": "in_progress"}
 
 
 def _hl_live_position(pair: str) -> str | None:
@@ -382,6 +488,109 @@ def list_pending(x_tv_secret: Optional[str] = Header(None), secret: Optional[str
     return {"count": len(pending), "orders": list(pending.values())}
 
 
+# ── OANDA broker-side fill feed ────────────────────────────────────────────────
+# watcher/oanda_stream_listener.py holds a persistent connection to OANDA's own
+# transactions/stream endpoint and forwards STOP_LOSS_ORDER/TAKE_PROFIT_ORDER
+# fills here. This is the real broker-confirmed close — distinct from Jingda's
+# own chart-side sl_hit/tp_hit exit signal (mcp_processor.handle_exit), which
+# can diverge once a SL has been ratcheted via sub_tp and no longer matches
+# what the chart itself is tracking.
+
+_OANDA_FILL_REASON_MAP = {
+    "STOP_LOSS_ORDER":           "sl_hit",
+    "TRAILING_STOP_LOSS_ORDER":  "sl_hit",
+    "TAKE_PROFIT_ORDER":         "tp_hit",
+}
+
+
+_OANDA_ACCOUNT_PREFIX = {"mix": "OANDA", "short": "OANDA_SHORT",
+                         "mid": "OANDA_MID", "long": "OANDA_LONG"}
+
+
+class OandaFillPayload(BaseModel):
+    instrument: str             # OANDA format, e.g. "EUR_USD"
+    reason:     str             # OANDA transaction reason, e.g. "STOP_LOSS_ORDER"
+    price:      float
+    pl:         float = 0.0
+    trade_id:   Optional[str] = None
+    time:       Optional[str] = None
+    account:    str = "mix"  # which OANDA account's stream this came from
+
+
+@app.post("/oanda-fill")
+def receive_oanda_fill(payload: OandaFillPayload,
+                        x_tv_secret: Optional[str] = Header(None),
+                        secret: Optional[str] = Query(None)):
+    _verify(x_tv_secret, secret)
+
+    reason = _OANDA_FILL_REASON_MAP.get(payload.reason)
+    if reason is None:
+        log.info(f"[OANDA-STREAM] {payload.instrument} reason={payload.reason} — not a TP/SL fill, ignoring")
+        return {"ok": True, "skipped": True, "why": f"unhandled_reason_{payload.reason}"}
+
+    prefix = _OANDA_ACCOUNT_PREFIX.get(payload.account, "OANDA")
+    pair   = prefix + ":" + payload.instrument.replace("_", "")
+    trade  = manager.get_trade(pair)
+    if not trade or trade.closed:
+        log.info(f"[OANDA-STREAM] {pair} {payload.reason} fill received — no open trade locally, ignoring")
+        return {"ok": True, "skipped": True, "why": "no_open_trade"}
+
+    manager.close_trade(pair, reason=reason, close_price=payload.price)
+    log.info(f"[OANDA-STREAM] ✅ {pair} closed via broker {payload.reason} @ {payload.price}  pl={payload.pl}")
+    return {"ok": True, "pair": pair, "reason": reason, "close_price": payload.price}
+
+
+# ── Hyperliquid broker-side fill feed ──────────────────────────────────────────
+# watcher/hyperliquid_stream_listener.py holds a persistent WebSocket connection
+# to Hyperliquid's public userFills feed and forwards closing fills (debounced
+# and size-weighted-averaged per coin) here. Unlike OANDA, HL fills don't carry
+# an explicit "this was a stop order" reason — sl_hit/tp_hit is inferred by
+# whichever of the position's recorded sl/tp levels the close price landed
+# nearest to, which correctly handles a ratcheted SL closing in profit (still
+# sl_hit, not tp_hit, since ratcheted-SL closes can land on either side of
+# entry — see the VVV case that motivated this whole feature).
+
+class HlFillPayload(BaseModel):
+    coin:        str            # e.g. "HYPE", or "xyz:BRENTOIL" for XYZ dex
+    avg_price:   float
+    total_size:  float
+    closed_pnl:  float = 0.0
+    time:        Optional[int] = None
+
+
+def _hl_pair_for_coin(coin: str) -> str:
+    if coin.startswith("xyz:"):
+        return "XYZ:" + coin[len("xyz:"):]
+    return "HYPERLIQUID:" + coin + "USDC.P"
+
+
+@app.post("/hl-fill")
+def receive_hl_fill(payload: HlFillPayload,
+                     x_tv_secret: Optional[str] = Header(None),
+                     secret: Optional[str] = Query(None)):
+    _verify(x_tv_secret, secret)
+
+    pair  = _hl_pair_for_coin(payload.coin)
+    trade = manager.get_trade(pair)
+    if not trade or trade.closed:
+        log.info(f"[HL-STREAM] {pair} fill received — no open trade locally, ignoring")
+        return {"ok": True, "skipped": True, "why": "no_open_trade"}
+
+    if trade.sl is not None and trade.tp is not None:
+        reason = "tp_hit" if abs(payload.avg_price - trade.tp) < abs(payload.avg_price - trade.sl) else "sl_hit"
+    elif trade.tp is not None:
+        reason = "tp_hit"
+    elif trade.sl is not None:
+        reason = "sl_hit"
+    else:
+        reason = "reconcile_not_on_exchange"  # no recorded levels to compare against
+
+    manager.close_trade(pair, reason=reason, close_price=payload.avg_price)
+    log.info(f"[HL-STREAM] ✅ {pair} closed via broker fill @ {payload.avg_price}  "
+             f"pnl={payload.closed_pnl}  reason={reason}")
+    return {"ok": True, "pair": pair, "reason": reason, "close_price": payload.avg_price}
+
+
 @app.delete("/pending/{pair:path}")
 def remove_pending(pair: str,
                    x_tv_secret: Optional[str] = Header(None),
@@ -448,9 +657,10 @@ def _parse_plain_text(text: str) -> dict | None:
 
 @app.post("/alert")
 async def receive_alert(
-    request:     Request,
-    x_tv_secret: Optional[str] = Header(None),
-    secret:      Optional[str] = Query(None),
+    request:          Request,
+    background_tasks: BackgroundTasks,
+    x_tv_secret:       Optional[str] = Header(None),
+    secret:            Optional[str] = Query(None),
 ):
     _verify(x_tv_secret, secret)
     body = await request.body()
@@ -478,6 +688,7 @@ async def receive_alert(
         raise HTTPException(422, str(e))
 
     pair     = payload.pair.upper()
+    pair     = _route_forex_account(pair, payload.timeframe)
     price    = payload.chart_entry_price if payload.chart_entry_price is not None else payload.price
     note     = payload.note or ""
     p        = _prefix(pair)
@@ -533,7 +744,7 @@ async def receive_alert(
     if payload.event is not None:
         event = payload.event.lower()
         if event == "sub_tp":
-            result = _handle_sub_tp(pair, payload)
+            result = _handle_sub_tp(pair, payload, background_tasks)
             return {"ok": True, "event": event, "pair": pair, "tier": payload.tier, **result}
         log.info(f"[TV→] {pair} event={event} — informational only, no broker action")
         return {"ok": True, "skipped": True, "event": event, "reason": "informational_only"}
@@ -583,13 +794,29 @@ async def receive_alert(
                                     close_price=price or 0)
         # ─────────────────────────────────────────────────────────────────────
 
-        ok = _broker_open(pair, direction, price, payload.notional, tp=tp, sl=sl)
+        # OANDA margin wall — this webhook path had no margin gate at all
+        # before; each split account gates its own new entries off its own
+        # margin usage (see trader.oanda_trader.margin_status()).
+        if _prefix(pair) in _FOREX_PREFIXES:
+            oanda_account = _oanda_account_for(pair)
+            margin = _oanda_margin_status(oanda_account)
+            if margin["block"]:
+                log.warning(f"[TV→] {pair} BLOCKED — OANDA[{oanda_account}] margin closeout "
+                            f"{margin['pct']*100:.1f}% at/above block wall")
+                return {"ok": False, "action": action, "pair": pair,
+                       "error": "margin_block", "margin_pct": margin["pct"]}
+            if margin["warn"]:
+                log.warning(f"[TV→] {pair} margin WARNING — OANDA[{oanda_account}] closeout "
+                            f"{margin['pct']*100:.1f}% at/above warn wall, proceeding")
+
+        notional = _forex_notional(pair, payload.notional)
+        ok = _broker_open(pair, direction, price, notional, tp=tp, sl=sl)
         if not ok:
             log.error(f"[TV→] ❌ {pair} broker open failed — not recording position_state")
             return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, direction,
                            entry=price or 0, tp=tp, sl=sl, atr=atr,
-                           size=payload.notional, features={})
+                           size=notional, features={}, opened_by="tv_alert")
         log.info(f"[TV→] ✅ Opened {direction.upper()} {pair}  tp={tp}  sl={sl}  atr={atr}")
         return {"ok": True, "action": action, "pair": pair, "direction": direction,
                 "tp": tp, "sl": sl}
@@ -615,13 +842,26 @@ async def receive_alert(
             if flip_tp is not None:
                 log.info(f"[TV→] {pair} flip — ATR fallback applied  tp={flip_tp:.5f}  sl={flip_sl:.5f}")
 
-        ok = _broker_open(pair, new_dir, price, payload.notional, tp=flip_tp, sl=flip_sl)
+        if _prefix(pair) in _FOREX_PREFIXES:
+            oanda_account = _oanda_account_for(pair)
+            margin = _oanda_margin_status(oanda_account)
+            if margin["block"]:
+                log.warning(f"[TV→] {pair} flip-reopen BLOCKED — OANDA[{oanda_account}] margin closeout "
+                            f"{margin['pct']*100:.1f}% at/above block wall — staying flat")
+                return {"ok": False, "action": action, "pair": pair,
+                       "error": "margin_block", "margin_pct": margin["pct"]}
+            if margin["warn"]:
+                log.warning(f"[TV→] {pair} flip-reopen margin WARNING — OANDA[{oanda_account}] closeout "
+                            f"{margin['pct']*100:.1f}% at/above warn wall, proceeding")
+
+        notional = _forex_notional(pair, payload.notional)
+        ok = _broker_open(pair, new_dir, price, notional, tp=flip_tp, sl=flip_sl)
         if not ok:
             log.error(f"[TV→] ❌ {pair} flip broker open failed — not recording position_state")
             return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, new_dir,
                            entry=price or 0, tp=flip_tp, sl=flip_sl, atr=0,
-                           size=payload.notional, features={})
+                           size=notional, features={}, opened_by="tv_alert")
         log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}")
         return {"ok": True, "action": action, "pair": pair, "new_direction": new_dir}
 

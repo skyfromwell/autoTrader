@@ -18,7 +18,9 @@
     "BATS:AMGN": 0,
     "BATS:FCX": 0,
     "HYPERLIQUID:RENDERUSDC.P": 0,
-    "OANDA:AUDNZD": 0
+    "OANDA:AUDNZD": 0,
+    "OANDA:USDCHF": 0,
+    "OANDA:GBPUSD": 0
   },
   "symbol_state": {
     "PIONEX:BRENTOILUSDT.P": {
@@ -30,12 +32,12 @@
       "last_signal_val": 1
     },
     "OANDA:EURUSD": {
-      "last_pull": "2026-07-16T13:12:43",
+      "last_pull": "2026-07-21T09:18:38",
       "last_signal": "2026-07-15T17:08:26",
       "last_signal_val": 1
     },
     "OANDA:GBPUSD": {
-      "last_pull": "2026-07-16T13:13:01",
+      "last_pull": "2026-07-21T09:18:56",
       "last_signal": "2026-07-15T13:08:55",
       "last_signal_val": 1
     },
@@ -76,17 +78,17 @@
       "last_pull": "2026-07-09T17:03:07"
     },
     "OANDA:USDJPY": {
-      "last_pull": "2026-07-16T13:13:37",
+      "last_pull": "2026-07-21T09:19:32",
       "last_signal": "2026-07-13T13:09:32",
       "last_signal_val": 1
     },
     "OANDA:AUDUSD": {
-      "last_pull": "2026-07-16T13:12:25",
-      "last_signal": "2026-07-02T08:07:16",
+      "last_pull": "2026-07-21T09:18:20",
+      "last_signal": "2026-07-20T09:18:20",
       "last_signal_val": 1
     },
     "OANDA:NZDUSD": {
-      "last_pull": "2026-07-16T13:13:19",
+      "last_pull": "2026-07-21T09:19:14",
       "last_signal": "2026-06-30T08:13:19",
       "last_signal_val": 1
     },
@@ -99,166 +101,166 @@
       "last_pull": "2026-07-09T17:05:13"
     },
     "SZSE:000725": {
-      "last_pull": "2026-07-14T21:14:10"
+      "last_pull": "2026-07-20T21:14:09"
     },
     "SZSE:002415": {
-      "last_pull": "2026-07-14T21:14:46"
+      "last_pull": "2026-07-20T21:14:45"
     },
     "NYSE:LLY": {
-      "last_pull": "2026-07-16T09:44:32"
+      "last_pull": "2026-07-21T09:15:38"
     },
     "NYSE:DELL": {
-      "last_pull": "2026-07-16T09:42:08"
+      "last_pull": "2026-07-21T09:13:14"
     },
     "NYSE:CAT": {
-      "last_pull": "2026-07-16T09:41:50"
+      "last_pull": "2026-07-21T09:12:56"
     },
     "NYSE:KO": {
-      "last_pull": "2026-07-16T09:44:14"
+      "last_pull": "2026-07-21T09:15:20"
     },
     "NYSE:GS": {
-      "last_pull": "2026-07-16T09:43:02",
+      "last_pull": "2026-07-21T09:14:08",
       "last_signal": "2026-07-15T09:14:20",
       "last_signal_val": 1
     },
     "NYSE:MS": {
-      "last_pull": "2026-07-16T09:45:26"
+      "last_pull": "2026-07-21T09:16:32"
     },
     "NYSE:HPE": {
       "last_pull": "2026-07-01T12:56:39"
     },
     "NASDAQ:CSCO": {
-      "last_pull": "2026-07-16T09:38:14",
+      "last_pull": "2026-07-21T09:09:20",
       "last_signal": "2026-07-09T10:12:09",
       "last_signal_val": 1
     },
     "NASDAQ:AAPL": {
-      "last_pull": "2026-07-16T09:37:02",
+      "last_pull": "2026-07-21T09:08:08",
       "last_signal": "2026-07-01T12:57:15",
       "last_signal_val": 1
     },
     "NASDAQ:AMAT": {
-      "last_pull": "2026-07-16T09:37:20"
+      "last_pull": "2026-07-21T09:08:26"
     },
     "NASDAQ:AMD": {
-      "last_pull": "2026-07-16T09:37:38"
+      "last_pull": "2026-07-21T09:08:44"
     },
     "NASDAQ:AMGN": {
-      "last_pull": "2026-07-16T09:37:55"
+      "last_pull": "2026-07-21T09:09:02"
     },
     "NASDAQ:FTNT": {
-      "last_pull": "2026-07-16T09:38:32"
+      "last_pull": "2026-07-21T09:09:38"
     },
     "NASDAQ:KLAC": {
-      "last_pull": "2026-07-16T09:38:50"
+      "last_pull": "2026-07-21T09:09:56"
     },
     "NASDAQ:MNST": {
-      "last_pull": "2026-07-16T09:39:08"
+      "last_pull": "2026-07-21T09:10:14"
     },
     "NASDAQ:PANW": {
-      "last_pull": "2026-07-16T09:39:26"
+      "last_pull": "2026-07-21T09:10:32"
     },
     "NASDAQ:PYPL": {
-      "last_pull": "2026-07-16T09:39:44"
+      "last_pull": "2026-07-21T09:10:50"
     },
     "NASDAQ:REGN": {
-      "last_pull": "2026-07-16T09:40:01"
+      "last_pull": "2026-07-21T09:11:08"
     },
     "NASDAQ:SBUX": {
-      "last_pull": "2026-07-16T09:40:20"
+      "last_pull": "2026-07-21T09:11:26"
     },
     "NASDAQ:VRTX": {
-      "last_pull": "2026-07-16T09:40:37"
+      "last_pull": "2026-07-21T09:11:44"
     },
     "NYSE:ABT": {
-      "last_pull": "2026-07-16T09:40:56",
+      "last_pull": "2026-07-21T09:12:02",
       "last_signal": "2026-07-16T09:40:56",
       "last_signal_val": 1
     },
     "NYSE:AXP": {
-      "last_pull": "2026-07-16T09:41:14"
+      "last_pull": "2026-07-21T09:12:20"
     },
     "NYSE:BAC": {
-      "last_pull": "2026-07-16T09:41:32"
+      "last_pull": "2026-07-21T09:12:38"
     },
     "NYSE:DHR": {
-      "last_pull": "2026-07-16T09:42:26"
+      "last_pull": "2026-07-21T09:13:32"
     },
     "NYSE:GE": {
-      "last_pull": "2026-07-16T09:42:44"
+      "last_pull": "2026-07-21T09:13:50"
     },
     "NYSE:HD": {
-      "last_pull": "2026-07-16T09:43:19"
+      "last_pull": "2026-07-21T09:14:26"
     },
     "NYSE:JNJ": {
-      "last_pull": "2026-07-16T09:43:37"
+      "last_pull": "2026-07-21T09:14:44"
     },
     "NYSE:JPM": {
-      "last_pull": "2026-07-16T09:43:55"
+      "last_pull": "2026-07-21T09:15:02"
     },
     "NYSE:MA": {
-      "last_pull": "2026-07-16T09:44:49"
+      "last_pull": "2026-07-21T09:15:56"
     },
     "NYSE:MRK": {
-      "last_pull": "2026-07-16T09:45:08",
+      "last_pull": "2026-07-21T09:16:14",
       "last_signal": "2026-07-16T09:45:08",
       "last_signal_val": 1
     },
     "NYSE:RTX": {
-      "last_pull": "2026-07-16T09:45:44"
+      "last_pull": "2026-07-21T09:16:50"
     },
     "NYSE:TMO": {
-      "last_pull": "2026-07-16T09:46:02"
+      "last_pull": "2026-07-21T09:17:08"
     },
     "NYSE:UNH": {
-      "last_pull": "2026-07-16T09:46:20"
+      "last_pull": "2026-07-21T09:17:26"
     },
     "NYSE:V": {
-      "last_pull": "2026-07-16T09:46:38"
+      "last_pull": "2026-07-21T09:17:44"
     },
     "NYSE:WFC": {
-      "last_pull": "2026-07-16T09:46:55"
+      "last_pull": "2026-07-21T09:18:02"
     },
     "SSE:600028": {
-      "last_pull": "2026-07-14T21:09:40",
+      "last_pull": "2026-07-20T21:09:39",
       "last_signal": "2026-07-05T23:34:36",
       "last_signal_val": 1
     },
     "SSE:600030": {
-      "last_pull": "2026-07-14T21:09:58"
+      "last_pull": "2026-07-20T21:09:57"
     },
     "SSE:600111": {
-      "last_pull": "2026-07-14T21:10:16"
+      "last_pull": "2026-07-20T21:10:15"
     },
     "SSE:600346": {
-      "last_pull": "2026-07-14T21:11:28"
+      "last_pull": "2026-07-20T21:11:27"
     },
     "SSE:600460": {
-      "last_pull": "2026-07-14T21:11:46"
+      "last_pull": "2026-07-20T21:11:45"
     },
     "SSE:601211": {
-      "last_pull": "2026-07-14T21:12:04"
+      "last_pull": "2026-07-20T21:12:03"
     },
     "SSE:601229": {
-      "last_pull": "2026-07-14T21:12:22",
-      "last_signal": "2026-07-13T21:12:20",
+      "last_pull": "2026-07-20T21:12:21",
+      "last_signal": "2026-07-19T21:12:21",
       "last_signal_val": 1
     },
     "SSE:601628": {
-      "last_pull": "2026-07-14T21:12:40",
+      "last_pull": "2026-07-20T21:12:39",
       "last_signal": "2026-07-14T21:12:40",
       "last_signal_val": 1
     },
     "SSE:601688": {
-      "last_pull": "2026-07-14T21:12:58"
+      "last_pull": "2026-07-20T21:12:57"
     },
     "SZSE:000538": {
-      "last_pull": "2026-07-14T21:13:34",
+      "last_pull": "2026-07-20T21:13:33",
       "last_signal": "2026-07-02T22:13:05",
       "last_signal_val": 1
     },
     "SZSE:002493": {
-      "last_pull": "2026-07-14T21:15:04",
+      "last_pull": "2026-07-20T21:15:03",
       "last_signal": "2026-07-05T23:49:20",
       "last_signal_val": 1
     },
@@ -269,263 +271,99 @@
       "last_pull": "2026-07-09T17:05:31"
     },
     "SSE:600196": {
-      "last_pull": "2026-07-14T21:10:34",
+      "last_pull": "2026-07-20T21:10:33",
       "last_signal": "2026-07-14T21:10:34",
       "last_signal_val": 1
     },
     "SSE:600276": {
-      "last_pull": "2026-07-14T21:10:52"
+      "last_pull": "2026-07-20T21:10:51"
     },
     "SSE:600309": {
-      "last_pull": "2026-07-14T21:11:10"
+      "last_pull": "2026-07-20T21:11:09"
     },
     "SZSE:000651": {
-      "last_pull": "2026-07-14T21:13:52"
+      "last_pull": "2026-07-20T21:13:51"
     },
     "SZSE:002236": {
-      "last_pull": "2026-07-14T21:14:28"
+      "last_pull": "2026-07-20T21:14:27"
     },
     "SZSE:002714": {
-      "last_pull": "2026-07-14T21:15:22"
+      "last_pull": "2026-07-20T21:15:21"
     },
     "SZSE:300015": {
-      "last_pull": "2026-07-14T21:15:40"
+      "last_pull": "2026-07-20T21:15:39"
     },
     "SZSE:300059": {
-      "last_pull": "2026-07-14T21:15:58"
+      "last_pull": "2026-07-20T21:15:57"
     },
     "HYPERLIQUID:BTCUSDC.P": {
-      "last_pull": "2026-07-16T13:02:03"
+      "last_pull": "2026-07-21T09:02:02",
+      "last_signal": "2026-07-21T01:02:02",
+      "last_signal_val": 1
     },
     "HYPERLIQUID:ETHUSDC.P": {
-      "last_pull": "2026-07-16T13:03:05",
-      "last_signal": "2026-07-14T09:03:05",
+      "last_pull": "2026-07-21T09:03:04",
+      "last_signal": "2026-07-20T13:03:05",
       "last_signal_val": 1
     },
     "HYPERLIQUID:HBARUSDC.P": {
-      "last_pull": "2026-07-16T13:04:07"
+      "last_pull": "2026-07-21T09:04:06",
+      "last_signal": "2026-07-21T01:04:07",
+      "last_signal_val": 1
     },
     "HYPERLIQUID:HYPEUSDC.P": {
-      "last_pull": "2026-07-16T13:04:25",
+      "last_pull": "2026-07-21T09:04:24",
       "last_signal": "2026-07-14T21:04:25",
       "last_signal_val": 1
     },
     "HYPERLIQUID:INJUSDC.P": {
-      "last_pull": "2026-07-16T13:04:43",
-      "last_signal": "2026-07-14T01:04:42",
+      "last_pull": "2026-07-21T09:04:42",
+      "last_signal": "2026-07-20T05:04:42",
       "last_signal_val": 1
     },
     "HYPERLIQUID:LINKUSDC.P": {
-      "last_pull": "2026-07-16T13:05:01"
+      "last_pull": "2026-07-21T09:05:00"
     },
     "HYPERLIQUID:NEARUSDC.P": {
-      "last_pull": "2026-07-16T13:05:19",
-      "last_signal": "2026-07-14T01:05:18",
+      "last_pull": "2026-07-21T09:05:18",
+      "last_signal": "2026-07-20T09:05:19",
       "last_signal_val": 1
     },
     "HYPERLIQUID:ONDOUSDC.P": {
-      "last_pull": "2026-07-16T13:05:37",
-      "last_signal": "2026-07-15T09:05:47",
+      "last_pull": "2026-07-21T09:05:36",
+      "last_signal": "2026-07-21T01:05:37",
       "last_signal_val": 1
     },
     "HYPERLIQUID:RENDERUSDC.P": {
-      "last_pull": "2026-07-16T13:10:11",
-      "last_signal": "2026-07-15T09:06:05",
+      "last_pull": "2026-07-21T09:05:54",
+      "last_signal": "2026-07-20T09:05:55",
       "last_signal_val": 1
     },
     "HYPERLIQUID:SOLUSDC.P": {
-      "last_pull": "2026-07-16T13:11:12",
-      "last_signal": "2026-07-15T01:06:56",
+      "last_pull": "2026-07-21T09:06:56",
+      "last_signal": "2026-07-20T09:06:56",
       "last_signal_val": 1
     },
     "HYPERLIQUID:SUIUSDC.P": {
-      "last_pull": "2026-07-16T13:11:31",
-      "last_signal": "2026-07-14T21:07:15",
+      "last_pull": "2026-07-21T09:07:14",
+      "last_signal": "2026-07-20T13:07:15",
       "last_signal_val": 1
     },
     "HYPERLIQUID:XLMUSDC.P": {
-      "last_pull": "2026-07-16T13:11:49",
+      "last_pull": "2026-07-21T09:07:32",
       "last_signal": "2026-07-15T09:07:43",
       "last_signal_val": 1
     },
     "HYPERLIQUID:XRPUSDC.P": {
-      "last_pull": "2026-07-16T13:12:07",
-      "last_signal": "2026-07-14T09:07:51",
+      "last_pull": "2026-07-21T09:07:50",
+      "last_signal": "2026-07-20T21:07:51",
       "last_signal_val": 1
     },
     "SZSE:000333": {
-      "last_pull": "2026-07-14T21:13:16"
+      "last_pull": "2026-07-20T21:13:15"
     }
   },
   "open_trades": {
-    "OANDA:AUDUSD": {
-      "pair": "OANDA:AUDUSD",
-      "direction": "long",
-      "entry": 0.68951,
-      "tp": 0.70604,
-      "sl": 0.69115,
-      "atr": 0,
-      "size": 200000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-12T18:53:29",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:NZDUSD": {
-      "pair": "OANDA:NZDUSD",
-      "direction": "long",
-      "entry": 0.57893,
-      "tp": 0.58948,
-      "sl": 0.57414,
-      "atr": 0,
-      "size": 20000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-13T09:33:39",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": "software",
-      "software_watch_units": 20000
-    },
-    "OANDA:USDCHF": {
-      "pair": "OANDA:USDCHF",
-      "direction": "long",
-      "entry": 0.80862,
-      "tp": 0.81399,
-      "sl": 0.80618,
-      "atr": 0.00098,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T08:00:30",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 0.81399,
-      "watcher_sl": 0.80618,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:EURAUD": {
-      "pair": "OANDA:EURAUD",
-      "direction": "short",
-      "entry": 1.63662,
-      "tp": 1.62737,
-      "sl": 1.64976,
-      "atr": 0.00142,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T05:00:04",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": "broker",
-      "software_watch_units": 0.0
-    },
-    "OANDA:NZDJPY": {
-      "pair": "OANDA:NZDJPY",
-      "direction": "long",
-      "entry": 93.456,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-12T18:57:49",
-      "closed": true,
-      "close_price": null,
-      "close_reason": "synced_from_oanda",
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:GBPJPY": {
-      "pair": "OANDA:GBPJPY",
-      "direction": "long",
-      "entry": 217.067,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-12T22:54:04",
-      "closed": true,
-      "close_price": null,
-      "close_reason": "synced_from_oanda",
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
     "BATS:AMAT": {
       "pair": "BATS:AMAT",
       "direction": "long",
@@ -552,7 +390,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:AXP": {
       "pair": "BATS:AXP",
@@ -580,7 +419,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:GE": {
       "pair": "BATS:GE",
@@ -608,7 +448,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:KLAC": {
       "pair": "BATS:KLAC",
@@ -636,7 +477,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:PANW": {
       "pair": "BATS:PANW",
@@ -664,7 +506,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:PYPL": {
       "pair": "BATS:PYPL",
@@ -692,7 +535,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:TMO": {
       "pair": "BATS:TMO",
@@ -720,7 +564,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:VRTX": {
       "pair": "BATS:VRTX",
@@ -748,35 +593,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "HYPERLIQUID:SOLUSDC.P": {
-      "pair": "HYPERLIQUID:SOLUSDC.P",
-      "direction": "long",
-      "entry": 77.357,
-      "tp": 86.76,
-      "sl": 73.86,
-      "atr": 0,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-12T07:53:32",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:GB30Y": {
       "pair": "TVC:GB30Y",
@@ -804,7 +622,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:GB10Y": {
       "pair": "TVC:GB10Y",
@@ -832,7 +651,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "OANDA:EURGBP": {
       "pair": "OANDA:EURGBP",
@@ -860,14 +680,15 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": "software",
-      "software_watch_units": 20000
+      "software_watch_units": 20000,
+      "opened_by": null
     },
     "OANDA:GBPAUD": {
       "pair": "OANDA:GBPAUD",
       "direction": "short",
       "entry": 1.92482,
       "tp": 1.91041,
-      "sl": 1.94605,
+      "sl": 1.92482,
       "atr": 0,
       "size": 10000,
       "notional": 0,
@@ -878,7 +699,7 @@
       "close_price": null,
       "close_reason": null,
       "result": null,
-      "protected_sl": null,
+      "protected_sl": 1.92482,
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
@@ -888,35 +709,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "BATS:MU": {
-      "pair": "BATS:MU",
-      "direction": "long",
-      "entry": 987.74,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-13T06:30:10",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:VZ": {
       "pair": "BATS:VZ",
@@ -944,7 +738,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:QCOM": {
       "pair": "BATS:QCOM",
@@ -972,7 +767,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:NFLX": {
       "pair": "BATS:NFLX",
@@ -1000,16 +796,17 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:RTX": {
       "pair": "BATS:RTX",
-      "direction": "short",
-      "entry": 193.93,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
+      "direction": "long",
+      "entry": 197.68,
+      "tp": 204.29824,
+      "sl": 194.37088,
+      "atr": 1.65456,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -1028,7 +825,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:DELL": {
       "pair": "BATS:DELL",
@@ -1056,14 +854,15 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:TSLA": {
       "pair": "BATS:TSLA",
       "direction": "short",
       "entry": 389.04,
       "tp": 348.38135,
-      "sl": 409.36932,
+      "sl": 378.8753375,
       "atr": 10.16466,
       "size": 10000,
       "notional": 0,
@@ -1074,7 +873,7 @@
       "close_price": null,
       "close_reason": null,
       "result": null,
-      "protected_sl": null,
+      "protected_sl": 378.8753375,
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
@@ -1084,7 +883,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:HPE": {
       "pair": "BATS:HPE",
@@ -1112,7 +912,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:DJI": {
       "pair": "TVC:DJI",
@@ -1140,35 +941,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:GBPUSD": {
-      "pair": "OANDA:GBPUSD",
-      "direction": "short",
-      "entry": 1.35068,
-      "tp": 1.34311,
-      "sl": 1.35412,
-      "atr": 0.00138,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T05:00:17",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 1.34311,
-      "watcher_sl": 1.35412,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:DXY": {
       "pair": "TVC:DXY",
@@ -1196,35 +970,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "BATS:MS": {
-      "pair": "BATS:MS",
-      "direction": "long",
-      "entry": 224.32,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-13T07:49:13",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:GS": {
       "pair": "BATS:GS",
@@ -1252,7 +999,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "FX:GBPNZD": {
       "pair": "FX:GBPNZD",
@@ -1270,7 +1018,7 @@
       "close_price": null,
       "close_reason": null,
       "result": null,
-      "protected_sl": null,
+      "protected_sl": 2.3046100000000003,
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
@@ -1280,7 +1028,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:JP30Y": {
       "pair": "TVC:JP30Y",
@@ -1308,35 +1057,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:USDCAD": {
-      "pair": "OANDA:USDCAD",
-      "direction": "short",
-      "entry": 1.40894,
-      "tp": 1.39524,
-      "sl": 1.41497,
-      "atr": 0,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-14T02:00:40",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:US05Y": {
       "pair": "TVC:US05Y",
@@ -1364,35 +1086,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:AUDJPY": {
-      "pair": "OANDA:AUDJPY",
-      "direction": "long",
-      "entry": 112.861,
-      "tp": 114.119,
-      "sl": 112.253,
-      "atr": 0,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T06:00:05",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:US30Y": {
       "pair": "TVC:US30Y",
@@ -1420,7 +1115,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:US02Y": {
       "pair": "TVC:US02Y",
@@ -1448,7 +1144,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:US10Y": {
       "pair": "TVC:US10Y",
@@ -1476,7 +1173,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "TVC:US20Y": {
       "pair": "TVC:US20Y",
@@ -1504,16 +1202,17 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:MSTR": {
       "pair": "BATS:MSTR",
       "direction": "long",
-      "entry": 94.77,
-      "tp": null,
-      "sl": null,
-      "atr": 0,
-      "size": 1.0,
+      "entry": 98.08,
+      "tp": 105.74136,
+      "sl": 101.91068,
+      "atr": 1.91534,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
@@ -1522,7 +1221,7 @@
       "close_price": null,
       "close_reason": null,
       "result": null,
-      "protected_sl": null,
+      "protected_sl": 101.91068,
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
@@ -1532,7 +1231,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:CAT": {
       "pair": "BATS:CAT",
@@ -1560,7 +1260,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:UNH": {
       "pair": "BATS:UNH",
@@ -1588,7 +1289,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:MRK": {
       "pair": "BATS:MRK",
@@ -1616,7 +1318,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "SZSE_DLY:002241": {
       "pair": "SZSE_DLY:002241",
@@ -1644,7 +1347,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "SSE_DLY:600104": {
       "pair": "SSE_DLY:600104",
@@ -1672,119 +1376,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "HYPERLIQUID:NEARUSDC.P": {
-      "pair": "HYPERLIQUID:NEARUSDC.P",
-      "direction": "long",
-      "entry": 1.9228,
-      "tp": 2.16515,
-      "sl": 1.81264,
-      "atr": 0.02119,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T02:00:19",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "HIP3XYZ:BRENTOILUSDC.P": {
-      "pair": "HIP3XYZ:BRENTOILUSDC.P",
-      "direction": "long",
-      "entry": 84.392,
-      "tp": 89.24086,
-      "sl": 82.57368,
-      "atr": 0.60611,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T06:00:16",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 89.24086,
-      "watcher_sl": 82.57368,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "OANDA:USDJPY": {
-      "pair": "OANDA:USDJPY",
-      "direction": "short",
-      "entry": 160.909,
-      "tp": 155.0,
-      "sl": null,
-      "atr": 0.11173,
-      "size": 80000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T07:00:07",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": "broker",
-      "software_watch_units": 0.0
-    },
-    "CME_MINI_DL:NQ1!": {
-      "pair": "CME_MINI_DL:NQ1!",
-      "direction": "short",
-      "entry": 29347.5,
-      "tp": 28392.24114,
-      "sl": 29825.12943,
-      "atr": 238.81472,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T07:10:12",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 28392.24114,
-      "watcher_sl": 29825.12943,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:LLY": {
       "pair": "BATS:LLY",
@@ -1812,7 +1405,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:AMGN": {
       "pair": "BATS:AMGN",
@@ -1840,7 +1434,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:FCX": {
       "pair": "BATS:FCX",
@@ -1868,7 +1463,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "NYSE:ABT": {
       "pair": "NYSE:ABT",
@@ -1908,20 +1504,21 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "OANDA:EURUSD": {
       "pair": "OANDA:EURUSD",
-      "direction": "long",
-      "entry": 1.13841,
-      "tp": 1.1519,
-      "sl": 1.13228,
-      "atr": 0.002453,
-      "size": 220000,
+      "direction": "short",
+      "entry": 1.14116,
+      "tp": 1.13082,
+      "sl": 1.14586,
+      "atr": 0.00188,
+      "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
-      "open_time": "2026-07-16T08:39:00",
+      "open_time": "2026-07-20T10:00:16",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -1931,12 +1528,13 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [],
-      "watcher_tp": null,
-      "watcher_sl": null,
+      "watcher_tp": 1.13082,
+      "watcher_sl": 1.14586,
       "manual_tp": null,
       "manual_sl": null,
-      "sl_tp_source": "mixed",
-      "software_watch_units": 30000
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "BATS:CSCO": {
       "pair": "BATS:CSCO",
@@ -1964,63 +1562,8 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "HYPERLIQUID:HYPEUSDC.P": {
-      "pair": "HYPERLIQUID:HYPEUSDC.P",
-      "direction": "short",
-      "entry": 62.522,
-      "tp": 50.89462,
-      "sl": 66.52752,
-      "atr": 1.42117,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T13:18:48",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 50.89462,
-      "watcher_sl": 66.52752,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
-    },
-    "HYPERLIQUID:RENDERUSDC.P": {
-      "pair": "HYPERLIQUID:RENDERUSDC.P",
-      "direction": "short",
-      "entry": 1.47229,
-      "tp": 1.30077,
-      "sl": 1.53841,
-      "atr": 0.0216,
-      "size": 10000,
-      "notional": 0,
-      "features": {},
-      "bar_time": null,
-      "open_time": "2026-07-16T17:31:21",
-      "closed": false,
-      "close_price": null,
-      "close_reason": null,
-      "result": null,
-      "protected_sl": null,
-      "runner_active": false,
-      "runner_regime": null,
-      "bars_since_close": 0,
-      "price_triggers": [],
-      "watcher_tp": 1.30077,
-      "watcher_sl": 1.53841,
-      "manual_tp": null,
-      "manual_sl": null,
-      "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
     "HYPERLIQUID:HBARUSDC.P": {
       "pair": "HYPERLIQUID:HBARUSDC.P",
@@ -2048,48 +1591,50 @@
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
-    "OANDA:AUDNZD": {
-      "pair": "OANDA:AUDNZD",
+    "CME_MINI_DL:NQ1!": {
+      "pair": "CME_MINI_DL:NQ1!",
       "direction": "short",
-      "entry": 1.19599,
-      "tp": 1.19088,
-      "sl": 1.19831,
-      "atr": 0.00093,
+      "entry": 29347.5,
+      "tp": 28392.24114,
+      "sl": 29825.12943,
+      "atr": 238.81472,
       "size": 10000,
       "notional": 0,
       "features": {},
       "bar_time": null,
-      "open_time": "2026-07-16T20:00:07",
+      "open_time": "2026-07-16T07:10:12",
       "closed": false,
       "close_price": null,
       "close_reason": null,
       "result": null,
-      "protected_sl": null,
+      "protected_sl": 29108.685285,
       "runner_active": false,
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [],
-      "watcher_tp": 1.19088,
-      "watcher_sl": 1.19831,
+      "watcher_tp": 28392.24114,
+      "watcher_sl": 29825.12943,
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
     },
-    "HYPERLIQUID:ONDOUSDC.P": {
-      "pair": "HYPERLIQUID:ONDOUSDC.P",
+    "BATS:MS": {
+      "pair": "BATS:MS",
       "direction": "long",
-      "entry": 0.36392,
-      "tp": 0.54663,
-      "sl": 0.29541,
-      "atr": 0.02284,
-      "size": 10000,
+      "entry": 224.32,
+      "tp": null,
+      "sl": null,
+      "atr": 0,
+      "size": 1.0,
       "notional": 0,
       "features": {},
       "bar_time": null,
-      "open_time": "2026-07-16T17:00:30",
+      "open_time": "2026-07-13T07:49:13",
       "closed": false,
       "close_price": null,
       "close_reason": null,
@@ -2099,12 +1644,506 @@
       "runner_regime": null,
       "bars_since_close": 0,
       "price_triggers": [],
-      "watcher_tp": 0.54663,
-      "watcher_sl": 0.29541,
+      "watcher_tp": null,
+      "watcher_sl": null,
       "manual_tp": null,
       "manual_sl": null,
       "sl_tp_source": null,
-      "software_watch_units": 0.0
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "HYPERLIQUID:RENDERUSDC.P": {
+      "pair": "HYPERLIQUID:RENDERUSDC.P",
+      "direction": "long",
+      "entry": 1.5108,
+      "tp": 1.30077,
+      "sl": 1.53841,
+      "atr": 0.0181,
+      "size": 0.5,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-16T17:31:21",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.30077,
+      "watcher_sl": 1.53841,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "OANDA:USDJPY": {
+      "pair": "OANDA:USDJPY",
+      "direction": "short",
+      "entry": 160.909,
+      "tp": 155.0,
+      "sl": null,
+      "atr": 0.11173,
+      "size": 80000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-16T07:00:07",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": null,
+      "watcher_sl": null,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "OANDA:EURAUD": {
+      "pair": "OANDA:EURAUD",
+      "direction": "short",
+      "entry": 1.63082,
+      "tp": 1.61457,
+      "sl": 1.63821,
+      "atr": 0.00296,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-20T06:00:05",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.61457,
+      "watcher_sl": 1.63821,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "OANDA:AUDUSD": {
+      "pair": "OANDA:AUDUSD",
+      "direction": "long",
+      "entry": 0.69981,
+      "tp": 0.70962,
+      "sl": 0.69633,
+      "atr": 0.00166,
+      "size": 60000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-20T06:00:13",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 0.70962,
+      "watcher_sl": 0.69633,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "HYPERLIQUID:SOLUSDC.P": {
+      "pair": "HYPERLIQUID:SOLUSDC.P",
+      "direction": "long",
+      "entry": 77.746,
+      "tp": 86.12942,
+      "sl": 74.60222,
+      "atr": 1.04793,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-20T09:00:22",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 86.12942,
+      "watcher_sl": 74.60222,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": null
+    },
+    "HYPERLIQUID:SUIUSDC.P": {
+      "pair": "HYPERLIQUID:SUIUSDC.P",
+      "direction": "long",
+      "entry": 0.76816,
+      "tp": 0.86076,
+      "sl": 0.73225,
+      "atr": 0.01168,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-20T13:00:25",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 0.86076,
+      "watcher_sl": 0.73225,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "tv_alert"
+    },
+    "OANDA_SHORT:EURUSD": {
+      "pair": "OANDA_SHORT:EURUSD",
+      "direction": "short",
+      "entry": 1.14196,
+      "tp": 1.1376,
+      "sl": 1.14455,
+      "atr": 0,
+      "size": 100000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:03",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.1376,
+      "watcher_sl": 1.14455,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA_SHORT:EURJPY": {
+      "pair": "OANDA_SHORT:EURJPY",
+      "direction": "long",
+      "entry": 185.815,
+      "tp": 186.192,
+      "sl": 185.37309,
+      "atr": 0,
+      "size": 20000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:03",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 186.192,
+      "watcher_sl": 185.37309,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA:EURJPY": {
+      "pair": "OANDA:EURJPY",
+      "direction": "long",
+      "entry": 185.815,
+      "tp": 186.192,
+      "sl": 185.37309,
+      "atr": 0,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:03",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 186.192,
+      "watcher_sl": 185.37309,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA_MID:GBPAUD": {
+      "pair": "OANDA_MID:GBPAUD",
+      "direction": "short",
+      "entry": 1.91285,
+      "tp": 1.90034,
+      "sl": 1.93008,
+      "atr": 0,
+      "size": 20000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:03",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.90034,
+      "watcher_sl": 1.93008,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA_MID:EURAUD": {
+      "pair": "OANDA_MID:EURAUD",
+      "direction": "short",
+      "entry": 1.62679,
+      "tp": 1.61457,
+      "sl": 1.63821,
+      "atr": 0,
+      "size": 20000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:04",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.61457,
+      "watcher_sl": 1.63821,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA_MID:AUDUSD": {
+      "pair": "OANDA_MID:AUDUSD",
+      "direction": "long",
+      "entry": 0.70202,
+      "tp": 0.70962,
+      "sl": 0.69633,
+      "atr": 0,
+      "size": 100000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:04",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 0.70962,
+      "watcher_sl": 0.69633,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA_MID:USDCAD": {
+      "pair": "OANDA_MID:USDCAD",
+      "direction": "long",
+      "entry": 1.40694,
+      "tp": 1.41724,
+      "sl": 1.40694,
+      "atr": 0,
+      "size": 100000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:04",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": 1.40694,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.41724,
+      "watcher_sl": 1.40694,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "OANDA:USDCAD": {
+      "pair": "OANDA:USDCAD",
+      "direction": "long",
+      "entry": 1.40694,
+      "tp": 1.41724,
+      "sl": 1.40051,
+      "atr": 0,
+      "size": 50000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T01:36:04",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 1.41724,
+      "watcher_sl": 1.40051,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_backfill"
+    },
+    "LSE_DLY:BHP": {
+      "pair": "LSE_DLY:BHP",
+      "direction": "long",
+      "entry": 3070.0,
+      "tp": 3254.78606,
+      "sl": 2977.60697,
+      "atr": 46.19652,
+      "size": 10000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-21T04:15:16",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 3254.78606,
+      "watcher_sl": 2977.60697,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "tv_alert"
+    },
+    "HYPERLIQUID:NEARUSDC.P": {
+      "pair": "HYPERLIQUID:NEARUSDC.P",
+      "direction": "long",
+      "entry": 1.9228,
+      "tp": 2.1652,
+      "sl": 1.9228,
+      "atr": 0.051,
+      "size": 5116,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-11T07:35:52",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": 1.9228,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": 2.1652,
+      "watcher_sl": 1.9228,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": "broker",
+      "software_watch_units": 0.0,
+      "opened_by": "watcher"
+    },
+    "OANDA:NZDUSD": {
+      "pair": "OANDA:NZDUSD",
+      "direction": "long",
+      "entry": 0.58604,
+      "tp": 0.59085,
+      "sl": 0.58385,
+      "atr": 0.00087,
+      "size": 50000,
+      "notional": 0,
+      "features": {},
+      "bar_time": null,
+      "open_time": "2026-07-13T08:12:45",
+      "closed": false,
+      "close_price": null,
+      "close_reason": null,
+      "result": null,
+      "protected_sl": null,
+      "runner_active": false,
+      "runner_regime": null,
+      "bars_since_close": 0,
+      "price_triggers": [],
+      "watcher_tp": null,
+      "watcher_sl": null,
+      "manual_tp": null,
+      "manual_sl": null,
+      "sl_tp_source": null,
+      "software_watch_units": 0.0,
+      "opened_by": "manual_legacy"
     }
   }
 }

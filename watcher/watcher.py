@@ -36,7 +36,7 @@ PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 JINGDA_STUDY = "Jingda"   # substring match against Data Window study name
 
 # Prefixes that trade 24/7 (crypto) or 24/5 weekdays (forex) — no hours check needed
-_CRYPTO_PREFIXES_WL = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
+_CRYPTO_PREFIXES_WL = {"HYPERLIQUID", "BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
 _FOREX_PREFIXES_WL  = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
 
 log = logging.getLogger(__name__)
@@ -307,6 +307,8 @@ def run_watcher():
     log.info("=" * 60)
 
     state = _load_state()
+    _last_margin_alert_day: str = ""
+    _last_us_sma_day:       str = ""
 
     while True:
         symbols = _load_watchlist()
@@ -340,6 +342,96 @@ def run_watcher():
                 _save_state(state)
             except Exception as e:
                 log.error(f"{tv_symbol}: unexpected error — {e}")
+
+        # Reconcile state vs real exchange positions every cycle
+        try:
+            from watcher.mcp_processor import manager as _mgr
+            issues = _mgr.reconcile()
+            if issues:
+                log.warning(f"[reconcile] {len(issues)} discrepancy(s): {issues}")
+        except Exception as _e:
+            log.debug(f"reconcile skipped: {_e}")
+
+        # Drop intended-position signals that stalled on margin/risk/network
+        # delay for more than 2 closed bars — see evict_stale() docstring.
+        try:
+            from watcher.mcp_processor import intended_mgr as _intended_mgr
+            evicted = _intended_mgr.evict_stale()
+            if evicted:
+                log.warning(f"[intended] evicted {len(evicted)} stale signal(s): {evicted}")
+        except Exception as _e:
+            log.debug(f"intended eviction skipped: {_e}")
+
+        # Daily 12:45 PT margin check — Oanda + HL + XYZ
+        now_pt = _pacific_now()
+        today  = now_pt.strftime("%Y-%m-%d")
+        if now_pt.hour == 12 and now_pt.minute >= 45 and _last_margin_alert_day != today:
+            _last_margin_alert_day = today
+            try:
+                from watcher.mcp_processor import (_HL_USAGE_WARN, _HL_USAGE_BLOCK,
+                                                    _HL_FROM_LIQ_WARN, _HL_FROM_LIQ_BLOCK,
+                                                    _hl_margin_stats)
+                from trader.oanda_trader import margin_status as _oanda_margin_status
+                from trader.oanda_trader import _MARGIN_WARN_PCT, _MARGIN_BLOCK_PCT
+                import os as _os
+                tok = _os.getenv("TELEGRAM_TOKEN", "")
+                cid = _os.getenv("TELEGRAM_CHAT_ID", "")
+
+                lines = ["📊 Daily Margin Check (12:45 PT)\n"]
+
+                # Oanda — all 4 split accounts
+                for _acct_label in ("mix", "short", "mid", "long"):
+                    try:
+                        s = _oanda_margin_status(_acct_label)
+                        if s["pct"] is None:
+                            lines.append(f"❓ Oanda[{_acct_label}]: not configured or check failed")
+                            continue
+                        e = "🚨" if s["block"] else ("⚠️" if s["warn"] else "✅")
+                        lines.append(f"{e} Oanda[{_acct_label}] (warn {_MARGIN_WARN_PCT*100:.0f}% / block {_MARGIN_BLOCK_PCT*100:.0f}%)")
+                        lines.append(f"   Closeout: {s['pct']*100:.1f}%  Avail: ${s['available']:,.0f}")
+                    except Exception as _oe:
+                        lines.append(f"❓ Oanda[{_acct_label}]: {_oe}")
+
+                # HL Perps + XYZ
+                for label, dex in [("HL Perps", None), ("XYZ DEX", "xyz")]:
+                    try:
+                        s        = _hl_margin_stats(dex=dex)
+                        usage    = s["margin_usage"] * 100
+                        from_liq = s["from_liq"] * 100
+                        if usage >= _HL_USAGE_BLOCK or from_liq <= _HL_FROM_LIQ_BLOCK:
+                            e = "🚨"
+                        elif usage >= _HL_USAGE_WARN or from_liq <= _HL_FROM_LIQ_WARN:
+                            e = "⚠️"
+                        else:
+                            e = "✅"
+                        lines.append(f"\n{e} {label}")
+                        lines.append(f"   Margin Usage: {usage:.1f}%  (warn>{_HL_USAGE_WARN*100:.0f}% block>{_HL_USAGE_BLOCK*100:.0f}%)")
+                        lines.append(f"   From Liq:     {from_liq:.1f}%  (warn<{_HL_FROM_LIQ_WARN*100:.0f}% block<{_HL_FROM_LIQ_BLOCK*100:.0f}%)")
+                        lines.append(f"   Equity: ${s['acv']:,.0f}  Free: ${s['free']:,.0f}")
+                    except Exception as _he:
+                        lines.append(f"❓ {label}: {_he}")
+
+                msg     = "\n".join(lines)
+                payload = _js.dumps({"chat_id": cid, "text": msg}).encode()
+                _ur.urlopen(_ur.Request(
+                    f"https://api.telegram.org/bot{tok}/sendMessage",
+                    data=payload, headers={"Content-Type": "application/json"}
+                ), timeout=8)
+                log.info("Daily margin alert sent to Telegram")
+            except Exception as _e:
+                log.warning(f"Margin alert failed: {_e}")
+
+        # Daily 1:30 PM PT US SMA10/21 report — runs after US market close (1 PM PT)
+        if (now_pt.hour == 13 and now_pt.minute >= 30
+                and now_pt.weekday() < 5
+                and _last_us_sma_day != today):
+            _last_us_sma_day = today
+            try:
+                log.info("Running daily US SMA10/21 report...")
+                from screener.us_sma_report import main as _us_sma_main
+                _us_sma_main()
+            except Exception as _e:
+                log.warning(f"US SMA report failed: {_e}")
 
         secs = _seconds_until_next_4h()
         mins = secs // 60

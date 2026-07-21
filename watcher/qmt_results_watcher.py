@@ -108,7 +108,8 @@ def _handle_result(fpath: Path) -> None:
             size  = result.get("filled_volume") or result.get("notional") or 0
             if entry:
                 manager.open_trade(pair=pair, direction="long", entry=float(entry),
-                                   tp=None, sl=None, atr=0, size=size, features={})
+                                   tp=None, sl=None, atr=0, size=size, features={},
+                                   opened_by="tv_alert")
                 log.info(f"[{task_id}] ✅ recorded {pair} long @ {entry}  size={size}")
             else:
                 log.warning(f"[{task_id}] {pair} filled but no entry price available — not recorded")

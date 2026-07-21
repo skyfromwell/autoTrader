@@ -23,6 +23,8 @@ from watcher.regime_classifier import RegimeClassifier
 from watcher.position_manager  import PositionManager, IntendedPositionManager
 from trader.trader             import execute_trade as alpaca_execute, close_alpaca_position, move_alpaca_sl
 from trader.oanda_trader       import execute_trade as oanda_execute
+from trader.oanda_trader       import account_for as oanda_account_for, margin_status as oanda_margin_status
+import trader.oanda_trader     as _oanda_trader
 from trader.hyperliquid_trader import execute_trade as hl_execute
 from trader.hyperliquid_trader import close_position as hl_close, partial_close_position as hl_partial_close, _hl_coin, _hl_post
 from trader.xyz_trader         import move_sl as xyz_move_sl
@@ -80,7 +82,6 @@ def _margin_needed(pair: str, notional: int) -> float:
     return float(notional)
 
 
-_OANDA_MARGIN_CAP    = 0.45   # block new Oanda entries above this closeout %
 _HL_USAGE_WARN       = 0.60   # Margin Usage % warn threshold
 _HL_USAGE_BLOCK      = 0.80   # Margin Usage % block threshold
 _HL_FROM_LIQ_WARN    = 0.50   # From Liquidation % warn threshold
@@ -133,27 +134,25 @@ def _hl_margin_stats(dex: str | None = None) -> dict:
             "free": free, "margin_usage": usage, "from_liq": from_liq}
 
 
-def _oanda_available_margin() -> float:
-    """Return 0 if Oanda closeout % >= _OANDA_MARGIN_CAP, else marginAvailable."""
-    try:
-        import urllib.request as _ur
-        key  = os.getenv("OANDA_API_KEY", "")
-        acct = os.getenv("OANDA_ACCOUNT_ID", "")
-        req  = _ur.Request(
-            f"https://api-fxtrade.oanda.com/v3/accounts/{acct}/summary",
-            headers={"Authorization": f"Bearer {key}"}
-        )
-        data    = json.loads(_ur.urlopen(req, timeout=8).read())["account"]
-        pct     = float(data.get("marginCloseoutPercent", 0))
-        avail   = float(data.get("marginAvailable", 0))
-        log.info(f"[OANDA] marginCloseoutPercent={pct:.3f}  marginAvailable=${avail:,.0f}")
-        if pct >= _OANDA_MARGIN_CAP:
-            log.warning(f"[OANDA] ⚠️ Margin closeout at {pct*100:.1f}% >= {_OANDA_MARGIN_CAP*100:.0f}% cap — blocking new forex entries")
-            return 0.0
-        return avail
-    except Exception as e:
-        log.warning(f"[OANDA] margin check error: {e} — blocking new entries to be safe")
+def _oanda_available_margin(pair: str = "OANDA:") -> float:
+    """Return 0 if this pair's OANDA account is at/above the block wall
+    (45%), else marginAvailable for that specific account. Each of the 4
+    split accounts gates its own new entries off its own margin usage —
+    see trader.oanda_trader.margin_status()."""
+    account = oanda_account_for(pair)
+    status = oanda_margin_status(account)
+    pct = status["pct"]
+    if pct is None:
         return 0.0
+    log.info(f"[OANDA:{account}] marginCloseoutPercent={pct:.3f}  marginAvailable=${status['available']:,.0f}")
+    if status["block"]:
+        log.warning(f"[OANDA:{account}] 🚨 Margin closeout at {pct*100:.1f}% >= "
+                    f"{_oanda_trader._MARGIN_BLOCK_PCT*100:.0f}% wall — blocking new forex entries")
+        return 0.0
+    if status["warn"]:
+        log.warning(f"[OANDA:{account}] ⚠️ Margin closeout at {pct*100:.1f}% >= "
+                    f"{_oanda_trader._MARGIN_WARN_PCT*100:.0f}% — proceeding, but getting close")
+    return status["available"]
 
 
 def _available_margin(pair: str) -> float:
@@ -165,7 +164,7 @@ def _available_margin(pair: str) -> float:
         elif prefix in _CRYPTO_PREFIXES:
             stats = _hl_margin_stats()
         elif prefix in _FOREX_PREFIXES:
-            return _oanda_available_margin()
+            return _oanda_available_margin(pair)
         else:
             return float("inf")  # Alpaca paper: no margin gate
 
@@ -204,7 +203,8 @@ def retry_pending_margin() -> None:
                                entry=intended.signal_price,
                                tp=intended.tp, sl=intended.sl, atr=intended.atr,
                                size=intended.size, features=intended.features,
-                               bar_time=intended.bar_time, notional=notional)
+                               bar_time=intended.bar_time, notional=notional,
+                               opened_by="watcher")
             intended_mgr.remove(pair)
         else:
             log.info(f"[{pair}] ⏳ Still pending margin — avail=${avail:.0f} "
@@ -213,7 +213,8 @@ def retry_pending_margin() -> None:
 
 # Exchange prefix → broker / asset-class routing
 _CRYPTO_PREFIXES  = {"HYPERLIQUID", "BINANCE", "BYBIT", "COINBASE", "KRAKEN", "BITMEX", "BITSTAMP", "PIONEX", "BLOFIN"}
-_FOREX_PREFIXES   = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+_FOREX_RAW_PREFIXES = {"FX", "OANDA", "FXCM", "FOREXCOM", "PEPPERSTONE"}
+_FOREX_PREFIXES   = _FOREX_RAW_PREFIXES | {"OANDA_SHORT", "OANDA_MID", "OANDA_LONG"}
 _CHINESE_PREFIXES = {"SSE", "SZSE", "HKEX", "SHSE"}   # no broker yet
 
 def _broker_execute(pair: str, direction: str, price: float | None = None,
@@ -272,7 +273,18 @@ def process_mcp_data(raw: dict) -> None:
     Called at each 4H candle close for one symbol.
     raw: dict of Jingda plot name → value (from TradingView data window).
     """
-    pair       = raw.get("pair", "UNKNOWN")
+    pair = raw.get("pair", "UNKNOWN")
+    # This whole pull loop reads the chart on a fixed 4h timeframe
+    # (_read_indicator_data hardcodes "240" — see watcher.py), so any OANDA
+    # pair coming through here always routes to the mid (4h) account. Accounts
+    # are independent capital pools, not shared tracking of "the same trade" —
+    # a mix-account position on this pair has no bearing on whether mid
+    # should open its own. This pull path is a separate route into
+    # position_manager from the TradingView webhook flow in tv_alert_server.py
+    # (which has its own timeframe-aware rewrite mirroring this one).
+    _prefix = pair.split(":", 1)[0].upper() if ":" in pair else ""
+    if _prefix in _FOREX_RAW_PREFIXES:
+        pair = "OANDA_MID:" + pair.split(":", 1)[-1]
     features   = extract_features(raw)
     signal_val = _safe_int(raw.get("Signal Stream", 0))
     exit_val   = _safe_int(raw.get("Exit Stream",   0))
@@ -401,7 +413,8 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
                                 close_price=mark_price)
             _broker_execute(pair, "long", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="long", entry=mark_price,
-                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={},
+                               opened_by="watcher")
             log.info(f"[{pair}] ✅ Flipped to LONG at {mark_price} notional=${notional:,}")
         elif action == "flip_short":
             log.info(f"[{pair}] 🔄 PRICE TRIGGER flip_short — {cond}@{level}  {note}")
@@ -411,7 +424,8 @@ def check_price_triggers(pair: str, mark_price: float) -> None:
                                 close_price=mark_price)
             _broker_execute(pair, "short", price=mark_price, notional=notional)
             manager.open_trade(pair=pair, direction="short", entry=mark_price,
-                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={})
+                               tp=old_tp, sl=None, atr=old_atr, size=notional, features={},
+                               opened_by="watcher")
             log.info(f"[{pair}] ✅ Flipped to SHORT at {mark_price} notional=${notional:,}")
         elif action == "partial_close":
             fraction = float(trig.get("fraction", 0.5))
@@ -562,10 +576,14 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
 
     notional = _notional_for(pair, size)
 
-    # Record signal intent before any broker interaction.
+    # Record signal intent before any broker interaction. This whole pull
+    # loop reads the Jingda study on a fixed 4h chart (_read_indicator_data
+    # hardcodes timeframe "240"), so every intended signal from this path is
+    # 4h-bar — see evict_stale() for how that governs staleness.
     intended_mgr.add(pair=pair, direction=direction, signal_price=entry,
                      tp=tp, sl=sl, atr=atr, size=size, notional=notional,
-                     features=features, bar_time=raw.get("bar_time"))
+                     features=features, bar_time=raw.get("bar_time"),
+                     timeframe="240")
 
     # Gate 6: Margin check (use actual margin locked = notional / leverage)
     avail  = _available_margin(pair)
@@ -588,7 +606,7 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
     manager.open_trade(pair=pair, direction=direction, entry=entry,
                        tp=tp, sl=sl, atr=atr, size=size,
                        features=features, bar_time=raw.get("bar_time"),
-                       notional=notional)
+                       notional=notional, opened_by="watcher")
     intended_mgr.remove(pair)
 
 

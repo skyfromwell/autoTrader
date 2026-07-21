@@ -2,8 +2,12 @@
 from __future__ import annotations
 """Trade state, history, and cooldown tracking per symbol."""
 
+import contextlib
+import fcntl
 import json
 import logging
+import os
+import urllib.request
 from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -18,12 +22,81 @@ _EXTERNAL_EDIT_FIELDS = frozenset({
     "runner_active", "protected_sl",
     "closed", "close_price", "close_reason", "result",
     "manual_tp", "manual_sl",
+    "watcher_tp", "watcher_sl",
     "sl_tp_source", "software_watch_units",
+    "opened_by",
 })
 
 STATE_FILE    = Path("output/position_state.json")
+LOCK_FILE     = Path("output/position_state.json.lock")
 INTENDED_FILE = Path("output/intended_positions.json")
+LEDGER_FILE   = Path("output/trade_history.jsonl")
 log = logging.getLogger(__name__)
+
+TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "2130465973")
+
+_CLOSE_REASON_LABELS = {
+    "sl_hit":                    "🔴 Stop Loss Triggered",
+    "tp_hit":                    "🟢 Take Profit Triggered",
+    "runner_exit":               "🏁 Runner Exit",
+    "low_confidence":            "🏁 Runner Exit (low confidence)",
+    "consolidation":             "🏁 Runner Exit (consolidation)",
+    "reversal":                  "🏁 Runner Exit (reversal)",
+    "mixed":                     "🏁 Runner Exit (mixed regime)",
+    "reconcile_not_on_exchange": "⚠️ Position Closed (drift — confirm on broker)",
+    "reconcile_not_on_broker":   "⚠️ Position Closed (drift — confirm on broker)",
+}
+
+
+def _notify_close(trade: "Trade", pnl_pct: Optional[float], win_loss: Optional[str]) -> None:
+    """Push a close notification to Telegram — the equivalent of the native
+    'Stop Loss Triggered' / 'Take Profit Triggered' alerts OANDA's own app
+    sends, but covering every broker this bot trades on (OANDA has no such
+    alert for Hyperliquid, Alpaca, or China positions at all).
+    """
+    if not TELEGRAM_TOKEN:
+        return
+    try:
+        label = _CLOSE_REASON_LABELS.get(trade.close_reason, f"Position Closed ({trade.close_reason})")
+        pnl_str = f"{pnl_pct:+.2f}% ({win_loss})" if pnl_pct is not None else "n/a"
+        text = (
+            f"{label}\n"
+            f"{trade.pair}  {trade.direction.upper()}\n"
+            f"Entry: {trade.entry:.5f}  →  Close: {trade.close_price:.5f}\n"
+            f"P&L: {pnl_str}"
+        )
+        payload = json.dumps({"chat_id": TELEGRAM_CHAT_ID, "text": text}).encode()
+        urllib.request.urlopen(urllib.request.Request(
+            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+            data=payload, headers={"Content-Type": "application/json"},
+        ), timeout=8)
+    except Exception as e:
+        log.warning(f"[{trade.pair}] could not send close notification: {e}")
+
+# A trade younger than this can't plausibly have round-tripped through disk
+# yet across every writer of position_state.json — see _save()'s delete guard.
+_DELETE_GRACE_SECONDS = 60
+
+
+@contextlib.contextmanager
+def _state_lock():
+    """Exclusive advisory lock spanning STATE_FILE's read-merge-write cycle.
+
+    Multiple processes (tv_alert_server, watcher, qmt_results_watcher) share
+    this file with no other coordination. Without this lock, one process can
+    read a pre-edit snapshot, sit on it while doing broker I/O, then write it
+    back out after another process's edit has already landed — silently
+    reverting that edit even though each individual write looked correct in
+    isolation.
+    """
+    LOCK_FILE.parent.mkdir(exist_ok=True)
+    with open(LOCK_FILE, "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 @dataclass
@@ -47,6 +120,16 @@ class IntendedTrade:
     status:        str            = "pending_execution"  # pending_execution | pending_margin
     created_at:    str            = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     margin_required: Optional[float] = None
+    timeframe:     str            = "240"  # TradingView minutes-string: "60"=1h, "240"=4h
+
+
+# Bar duration in hours, keyed by the TradingView timeframe strings this repo
+# actually produces. A signal is considered stale once it's this many bars
+# old with no broker confirmation — two full closed bars, since a bar or two
+# of network/margin/risk-gate delay is normal but by the third bar the chart
+# has moved on and the entry no longer reflects current price action.
+_INTENDED_STALE_BARS = 2
+_TIMEFRAME_HOURS = {"60": 1, "240": 4, "1D": 24}
 
 
 @dataclass
@@ -83,6 +166,10 @@ class Trade:
     # of size has a broker order, software_watch_units covers the remainder.
     sl_tp_source: Optional[str] = None
     software_watch_units: float = 0.0
+    # Who created this trade record: "tv_alert", "watcher", "manual", etc.
+    # Lets the external-edit merge in _save() attribute a disk change to its
+    # source instead of silently letting one writer clobber another's trade.
+    opened_by: Optional[str] = None
 
 
 class CooldownManager:
@@ -149,16 +236,45 @@ class IntendedPositionManager:
     def add(self, pair: str, direction: str, signal_price: float,
             tp: Optional[float], sl: Optional[float], atr: float,
             size: float, notional: int, features: dict,
-            bar_time=None) -> IntendedTrade:
+            bar_time=None, timeframe: str = "240") -> IntendedTrade:
         t = IntendedTrade(pair=pair, direction=direction,
                           signal_price=signal_price, tp=tp, sl=sl,
                           atr=atr, size=size, notional=notional,
-                          features=features, bar_time=bar_time)
+                          features=features, bar_time=bar_time,
+                          timeframe=timeframe)
         self._intended[pair] = t
         self._save()
         log.info(f"[{pair}] 📋 Intended {direction.upper()} signal recorded "
                  f"signal_price={signal_price} notional=${notional:,}")
         return t
+
+    def evict_stale(self, now: Optional[datetime] = None) -> list[str]:
+        """Remove intended trades that are >= _INTENDED_STALE_BARS bars old.
+
+        These are signals that passed every entry gate and were queued for
+        broker execution, but never got confirmed — stuck on margin, dropped
+        by a network hiccup, or just orphaned by a broker error partway
+        through. By the second closed bar the chart has moved on and the
+        recorded entry/tp/sl no longer reflect current price action, so
+        there's nothing left to retry against — only to discard.
+        """
+        now = now or datetime.now()
+        evicted = []
+        for pair, t in list(self._intended.items()):
+            hours = _TIMEFRAME_HOURS.get(t.timeframe, 4)
+            try:
+                age_hours = (now - datetime.fromisoformat(t.created_at)).total_seconds() / 3600
+            except (TypeError, ValueError):
+                continue
+            if age_hours >= _INTENDED_STALE_BARS * hours:
+                log.info(f"[{pair}] 🗑️ Intended signal stale "
+                         f"({age_hours:.1f}h old, {t.timeframe}min timeframe, "
+                         f"status={t.status}) — removing")
+                del self._intended[pair]
+                evicted.append(pair)
+        if evicted:
+            self._save()
+        return evicted
 
     def mark_pending_margin(self, pair: str, margin_required: float) -> None:
         t = self._intended.get(pair)
@@ -203,16 +319,17 @@ class PositionManager:
 
     def _load(self) -> None:
         try:
-            if STATE_FILE.exists():
-                data = json.loads(STATE_FILE.read_text())
-                self._file_mtime   = STATE_FILE.stat().st_mtime
-                self._sl_streaks   = data.get("sl_streaks", {})
-                self._symbol_state = data.get("symbol_state", {})
-                known = {f.name for f in fields(Trade)}
-                for pair, td in data.get("open_trades", {}).items():
-                    kw = {k: v for k, v in td.items() if k in known}
-                    kw["pair"] = pair  # outer key is authoritative
-                    self._trades[pair] = Trade(**kw)
+            with _state_lock():
+                if STATE_FILE.exists():
+                    data = json.loads(STATE_FILE.read_text())
+                    self._file_mtime   = STATE_FILE.stat().st_mtime
+                    self._sl_streaks   = data.get("sl_streaks", {})
+                    self._symbol_state = data.get("symbol_state", {})
+                    known = {f.name for f in fields(Trade)}
+                    for pair, td in data.get("open_trades", {}).items():
+                        kw = {k: v for k, v in td.items() if k in known}
+                        kw["pair"] = pair  # outer key is authoritative
+                        self._trades[pair] = Trade(**kw)
         except Exception as e:
             log.warning(f"Could not load position state: {e}")
 
@@ -228,68 +345,113 @@ class PositionManager:
         elif t.watcher_sl is not None:
             t.sl = t.watcher_sl
 
-    def _save(self) -> None:
+    def _merge_from_disk_locked(self) -> None:
+        """Unconditionally merge external state from disk into memory.
+
+        Caller must already hold _state_lock(). No mtime gate: this repo has
+        one process (watcher.watcher) that saves every ~17s via record_pull()
+        for unrelated symbols, so its own bookmark is almost always "latest"
+        from its own point of view — an mtime-gated merge would skip syncing
+        external corrections from other processes/direct edits almost every
+        time, since the narrow window where disk looks newer rarely lines up
+        with this process's save cadence. Re-parsing a small JSON file on
+        every save is cheap; silently ignoring peer state for hours isn't.
+        """
+        if not STATE_FILE.exists():
+            return
         try:
-            STATE_FILE.parent.mkdir(exist_ok=True)
+            disk_data   = json.loads(STATE_FILE.read_text())
+            disk_trades = disk_data.get("open_trades", {})
+            self._file_mtime   = STATE_FILE.stat().st_mtime
+            self._sl_streaks   = disk_data.get("sl_streaks", self._sl_streaks)
+            self._symbol_state = disk_data.get("symbol_state", self._symbol_state)
+            known = {f.name for f in fields(Trade)}
 
-            if STATE_FILE.exists():
-                try:
-                    disk_mtime = STATE_FILE.stat().st_mtime
-                    if disk_mtime > self._file_mtime:
-                        disk_data   = json.loads(STATE_FILE.read_text())
-                        disk_trades = disk_data.get("open_trades", {})
-                        self._file_mtime = disk_mtime
-                        known = {f.name for f in fields(Trade)}
+            # File is authoritative: sync all external-edit fields for
+            # pairs already in memory — unless the disk record predates
+            # the in-memory trade's open_time, which means the pair was
+            # (re)opened after this disk snapshot was written (e.g. a
+            # stale closed record from before open_trade() ran). Merging
+            # a pre-reopen snapshot onto a freshly opened trade would
+            # clobber its direction/entry/closed/etc. with old data.
+            for pair, ext in disk_trades.items():
+                if pair in self._trades:
+                    t = self._trades[pair]
+                    disk_open_time = ext.get("open_time")
+                    if disk_open_time and t.open_time and disk_open_time < t.open_time:
+                        continue
+                    for fld in _EXTERNAL_EDIT_FIELDS:
+                        if fld in ext:
+                            setattr(t, fld, ext[fld])
+                    self._apply_overrides(t)
+                else:
+                    # External add: pair appeared in file → load into memory.
+                    try:
+                        t = Trade(**{k: v for k, v in ext.items() if k in known})
+                        self._apply_overrides(t)
+                        self._trades[pair] = t
+                        log.info(f"[{pair}] loaded from external file edit")
+                    except Exception as e:
+                        log.warning(f"[{pair}] could not load externally-added trade: {e}")
 
-                        # File is authoritative: sync all external-edit fields for
-                        # pairs already in memory — unless the disk record predates
-                        # the in-memory trade's open_time, which means the pair was
-                        # (re)opened after this disk snapshot was written (e.g. a
-                        # stale closed record from before open_trade() ran). Merging
-                        # a pre-reopen snapshot onto a freshly opened trade would
-                        # clobber its direction/entry/closed/etc. with old data.
-                        for pair, ext in disk_trades.items():
-                            if pair in self._trades:
-                                t = self._trades[pair]
-                                disk_open_time = ext.get("open_time")
-                                if disk_open_time and t.open_time and disk_open_time < t.open_time:
-                                    continue
-                                for fld in _EXTERNAL_EDIT_FIELDS:
-                                    if fld in ext:
-                                        setattr(t, fld, ext[fld])
-                                self._apply_overrides(t)
-                            else:
-                                # External add: pair appeared in file → load into memory.
-                                try:
-                                    t = Trade(**{k: v for k, v in ext.items() if k in known})
-                                    self._apply_overrides(t)
-                                    self._trades[pair] = t
-                                    log.info(f"[{pair}] loaded from external file edit")
-                                except Exception as e:
-                                    log.warning(f"[{pair}] could not load externally-added trade: {e}")
+            # External delete: pair removed from file → remove from memory.
+            # Skip trades opened very recently: this same process may have
+            # just added one and called _save() before any other writer's
+            # snapshot could possibly include it — that's not a deletion,
+            # it's the disk catching up. Without this grace period, a fresh
+            # open_trade() call racing another process's stale write would
+            # wipe the brand-new trade seconds after it was recorded.
+            now = datetime.now()
+            for pair in list(self._trades.keys()):
+                if pair not in disk_trades:
+                    t = self._trades[pair]
+                    try:
+                        age = (now - datetime.fromisoformat(t.open_time)).total_seconds()
+                    except (TypeError, ValueError):
+                        age = _DELETE_GRACE_SECONDS  # malformed/missing open_time: don't protect it
+                    if age < _DELETE_GRACE_SECONDS:
+                        continue
+                    log.info(f"[{pair}] removed from memory (deleted from file externally)")
+                    self._trades.pop(pair)
+        except Exception:
+            pass
 
-                        # External delete: pair removed from file → remove from memory.
-                        for pair in list(self._trades.keys()):
-                            if pair not in disk_trades:
-                                log.info(f"[{pair}] removed from memory (deleted from file externally)")
-                                self._trades.pop(pair)
+    def _write_to_disk_locked(self) -> None:
+        """Serialize self._trades to disk. Caller must already hold _state_lock()."""
+        STATE_FILE.parent.mkdir(exist_ok=True)
+        open_trades = {pair: {k: v for k, v in t.__dict__.items()}
+                       for pair, t in self._trades.items()}
+        STATE_FILE.write_text(json.dumps(
+            {
+                "sl_streaks":   self._sl_streaks,
+                "symbol_state": self._symbol_state,
+                "open_trades":  open_trades,
+            },
+            indent=2
+        ))
+        self._file_mtime = STATE_FILE.stat().st_mtime
 
-                except Exception:
-                    pass
+    def _save(self) -> None:
+        """Sync from disk, then persist. Only safe for callers that do not
+        mutate Trade fields in the same breath — see _atomic_update()."""
+        try:
+            with _state_lock():
+                self._merge_from_disk_locked()
+                self._write_to_disk_locked()
+        except Exception as e:
+            log.warning(f"Could not save position state: {e}")
 
-            open_trades: dict = {}
-            for pair, t in self._trades.items():
-                open_trades[pair] = {k: v for k, v in t.__dict__.items()}
-
-            STATE_FILE.write_text(json.dumps(
-                {
-                    "sl_streaks":   self._sl_streaks,
-                    "symbol_state": self._symbol_state,
-                    "open_trades":  open_trades,
-                },
-                indent=2
-            ))
-            self._file_mtime = STATE_FILE.stat().st_mtime
+    def _atomic_update(self, mutate_fn) -> None:
+        """Merge from disk, apply mutate_fn(), then persist — all under one
+        lock acquisition, so no peer write can land between the sync and the
+        write and get silently clobbered (or clobber us). Use this from any
+        method that mutates a Trade field and needs the change to stick.
+        """
+        try:
+            with _state_lock():
+                self._merge_from_disk_locked()
+                mutate_fn()
+                self._write_to_disk_locked()
         except Exception as e:
             log.warning(f"Could not save position state: {e}")
 
@@ -326,47 +488,145 @@ class PositionManager:
     def get_trade(self, pair: str) -> Optional[Trade]:
         return self._trades.get(pair)
 
+    def find_by_ticker(self, ticker: str, hint_entry: Optional[float] = None) -> Optional[Trade]:
+        """Resolve an open trade by bare ticker (no exchange prefix).
+
+        TV *event* alerts (sub_tp/tp_hit/close) send just the ticker (e.g.
+        "HYPEUSDC.P"), while *action* alerts (open_long/open_short) send the
+        full tickerid ("HYPERLIQUID:HYPEUSDC.P") that open_trades is keyed
+        by. Falls back to exact match first, then matches on the ticker
+        suffix after the exchange prefix.
+
+        A pair can now be open on two different tracked keys at once — e.g.
+        "OANDA:EURUSD" (1h account) and "OANDA4H:EURUSD" (4h account) — and a
+        sub_tp alert carries no timeframe field to disambiguate which one it
+        means. When more than one key matches the bare ticker, `hint_entry`
+        (the alert's own chart_entry_price) picks whichever candidate's
+        recorded entry is closest — the two accounts' entries won't usually
+        coincide, so this is a reliable enough tiebreaker in practice.
+        """
+        trade = self._trades.get(ticker)
+        if trade:
+            return trade
+        ticker_u = ticker.upper()
+        candidates = [t for key, t in self._trades.items()
+                     if key.split(":", 1)[-1].upper() == ticker_u]
+        if not candidates:
+            return None
+        if len(candidates) == 1 or hint_entry is None:
+            return candidates[0]
+        return min(candidates, key=lambda t: abs(t.entry - hint_entry))
+
     def open_trade(self, pair: str, direction: str, entry: float,
                    tp: Optional[float], sl: Optional[float], atr: float,
                    size: float, features: dict, bar_time=None,
-                   notional: int = 0) -> Trade:
+                   notional: int = 0, opened_by: str = "unknown") -> Trade:
         trade = Trade(pair=pair, direction=direction, entry=entry,
                       tp=tp, sl=sl, atr=atr, size=size,
                       features=features, bar_time=bar_time,
-                      watcher_tp=tp, watcher_sl=sl, notional=notional)
-        self._trades[pair] = trade
-        self._save()
+                      watcher_tp=tp, watcher_sl=sl, notional=notional,
+                      opened_by=opened_by)
+
+        def _mutate():
+            self._trades[pair] = trade
+        self._atomic_update(_mutate)
         return trade
 
     def close_trade(self, pair: str, reason: str, close_price: float) -> None:
-        trade = self._trades.pop(pair, None)
-        if not trade:
-            return
-        trade.closed       = True
-        trade.close_price  = close_price
-        trade.close_reason = reason
-        trade.result       = reason
+        closed_trade = None
 
-        hist = self._history.setdefault(pair, [])
-        for t in hist:
-            t.bars_since_close += 1
-        hist.append(trade)
+        def _mutate():
+            nonlocal closed_trade
+            trade = self._trades.pop(pair, None)
+            if not trade:
+                return
+            trade.closed       = True
+            trade.close_price  = close_price
+            trade.close_reason = reason
+            trade.result       = reason
 
-        if reason == "sl_hit":
-            self._sl_streaks[pair] = self._sl_streaks.get(pair, 0) + 1
-            self.cooldown.activate(pair, self._sl_streaks[pair])
-        else:
-            self._sl_streaks[pair] = 0
-            self.cooldown.clear(pair)
+            hist = self._history.setdefault(pair, [])
+            for t in hist:
+                t.bars_since_close += 1
+            hist.append(trade)
 
-        self._save()
+            if reason == "sl_hit":
+                self._sl_streaks[pair] = self._sl_streaks.get(pair, 0) + 1
+                self.cooldown.activate(pair, self._sl_streaks[pair])
+            else:
+                self._sl_streaks[pair] = 0
+                self.cooldown.clear(pair)
+            closed_trade = trade
+
+        self._atomic_update(_mutate)
+        if closed_trade:
+            self._append_ledger(closed_trade)
+
+    @staticmethod
+    def _append_ledger(trade: Trade) -> None:
+        """Durably record a closed trade to LEDGER_FILE (append-only JSONL).
+
+        close_trade() previously left history in an in-memory dict only —
+        never persisted, so it vanished on every process restart and gave
+        no reliable answer to "what have we lost money on lately." This is
+        the fix: one line per close, independent of position_state.json's
+        own save/merge races, so a partial write here can't corrupt or be
+        corrupted by that file's read-merge-write cycle.
+
+        win_loss/pnl_pct are derived from `close_price` vs `entry`, which for
+        crypto is often the *chart's* reported close, not the exact broker
+        fill — treat these as directional estimates, not authoritative P&L.
+        Use the broker's own fill history for precise realized P&L.
+        """
+        pnl_pct = None
+        win_loss = None
+        if trade.entry and trade.close_price:
+            if trade.direction == "long":
+                pnl_pct = (trade.close_price - trade.entry) / trade.entry * 100
+            else:
+                pnl_pct = (trade.entry - trade.close_price) / trade.entry * 100
+            win_loss = "win" if pnl_pct > 0 else ("loss" if pnl_pct < 0 else "breakeven")
+
+        entry = {
+            "pair":          trade.pair,
+            "direction":     trade.direction,
+            "entry":         trade.entry,
+            "close_price":   trade.close_price,
+            "size":          trade.size,
+            "notional":      trade.notional,
+            "tp":            trade.tp,
+            "sl":            trade.sl,
+            "atr":           trade.atr,
+            "open_time":     trade.open_time,
+            "close_time":    datetime.now().isoformat(timespec="seconds"),
+            "close_reason":  trade.close_reason,
+            "pnl_pct":       round(pnl_pct, 4) if pnl_pct is not None else None,
+            "win_loss":      win_loss,
+            "opened_by":     trade.opened_by,
+            "sl_tp_source":  trade.sl_tp_source,
+        }
+        try:
+            with _state_lock():
+                LEDGER_FILE.parent.mkdir(exist_ok=True)
+                with open(LEDGER_FILE, "a") as fh:
+                    fh.write(json.dumps(entry) + "\n")
+        except Exception as e:
+            log.warning(f"[{trade.pair}] could not append trade ledger: {e}")
+
+        _notify_close(trade, pnl_pct, win_loss)
 
     def move_sl(self, pair: str, new_sl: float, reason: str = "") -> None:
-        trade = self._trades.get(pair)
-        if trade:
-            trade.sl           = new_sl
-            trade.protected_sl = new_sl
-            self._save()
+        def _mutate():
+            trade = self._trades.get(pair)
+            if trade:
+                trade.sl           = new_sl
+                trade.protected_sl = new_sl
+                # watcher_sl must move too: _apply_overrides() re-derives sl
+                # from watcher_sl on every merge (when manual_sl is unset),
+                # so leaving it at the old value would silently revert this
+                # move the next time any process syncs disk state.
+                trade.watcher_sl   = new_sl
+        self._atomic_update(_mutate)
 
     def close_software_watch(self, pair: str, closed_units: float,
                              reason: str, close_price: float) -> None:
@@ -374,28 +634,34 @@ class PositionManager:
         the whole trade, close it; otherwise shrink size and hand the remainder
         (already covered by a real broker order) back to broker-only tracking."""
         trade = self._trades.get(pair)
-        if not trade:
-            return
-        if closed_units >= trade.size:
+        if trade and closed_units >= trade.size:
             self.close_trade(pair, reason=reason, close_price=close_price)
             return
-        trade.size                 -= closed_units
-        trade.software_watch_units  = 0
-        trade.sl_tp_source          = "broker"
-        self._save()
+
+        def _mutate():
+            trade = self._trades.get(pair)
+            if not trade:
+                return
+            trade.size                 -= closed_units
+            trade.software_watch_units  = 0
+            trade.sl_tp_source          = "broker"
+        self._atomic_update(_mutate)
 
     def fire_price_trigger(self, pair: str, idx: int) -> None:
         """Remove a price trigger by index after it has fired."""
-        trade = self._trades.get(pair)
-        if trade and 0 <= idx < len(trade.price_triggers):
-            trade.price_triggers.pop(idx)
-            self._save()
+        def _mutate():
+            trade = self._trades.get(pair)
+            if trade and 0 <= idx < len(trade.price_triggers):
+                trade.price_triggers.pop(idx)
+        self._atomic_update(_mutate)
 
     def update_runner_decision(self, pair: str, regime: str, confidence: float) -> None:
-        trade = self._trades.get(pair)
-        if trade:
-            trade.runner_active = True
-            trade.runner_regime = regime
+        def _mutate():
+            trade = self._trades.get(pair)
+            if trade:
+                trade.runner_active = True
+                trade.runner_regime = regime
+        self._atomic_update(_mutate)
 
     # ── Exchange reconciliation ───────────────────────────────────────────────
 
@@ -409,12 +675,26 @@ class PositionManager:
         try:
             import os, urllib.request
             from trader.hyperliquid_trader import _hl_post
+            from trader.oanda_trader import _ACCOUNTS as _OANDA_ACCOUNTS
 
             # ── OANDA reconciliation ──────────────────────────────────────────
-            oanda_key  = os.environ.get("OANDA_API_KEY", "")
-            oanda_acct = os.environ.get("OANDA_ACCOUNT_ID", "")
-            oanda_url  = os.environ.get("OANDA_BASE_URL", "https://api-fxtrade.oanda.com/v3")
-            if oanda_key and oanda_acct:
+            # Two accounts now (1h default + 4h split) — loop both, tagging
+            # each with its own pair prefix, so a 4h position doesn't get
+            # misread as "not on OANDA" just because it's checked against the
+            # wrong account's positions.
+            oanda_url = os.environ.get("OANDA_BASE_URL", "https://api-fxtrade.oanda.com/v3")
+            _ACCOUNT_PREFIX = {"mix": "OANDA", "short": "OANDA_SHORT",
+                              "mid": "OANDA_MID", "long": "OANDA_LONG"}
+            oanda_live: dict[str, dict] = {}
+            oanda_tpsl: dict[str, dict] = {}
+            any_oanda_account = False
+
+            for _acct_key, _creds in _OANDA_ACCOUNTS.items():
+                oanda_key, oanda_acct = _creds["key"], _creds["account"]
+                if not (oanda_key and oanda_acct):
+                    continue
+                any_oanda_account = True
+                prefix = _ACCOUNT_PREFIX[_acct_key]
                 try:
                     req = urllib.request.Request(
                         f"{oanda_url}/accounts/{oanda_acct}/openPositions",
@@ -422,9 +702,8 @@ class PositionManager:
                     )
                     with urllib.request.urlopen(req, timeout=8) as r:
                         oanda_data = __import__("json").loads(r.read())
-                    oanda_live: dict[str, dict] = {}
                     for p in oanda_data.get("positions", []):
-                        instr = "OANDA:" + p["instrument"].replace("_", "")
+                        instr = prefix + ":" + p["instrument"].replace("_", "")
                         lg, sh = p.get("long", {}), p.get("short", {})
                         if float(lg.get("units", 0)) > 0:
                             oanda_live[instr] = {"direction": "long",  "entry": float(lg["averagePrice"]), "units": float(lg["units"])}
@@ -434,7 +713,6 @@ class PositionManager:
                     # tp/sl per instrument, from each open trade's linked orders —
                     # a pair can have multiple trade tickets (FIFO-safeguard splits),
                     # so collect every tp/sl actually resting on the broker for it.
-                    oanda_tpsl: dict[str, dict] = {}
                     try:
                         treq = urllib.request.Request(
                             f"{oanda_url}/accounts/{oanda_acct}/openTrades",
@@ -443,17 +721,20 @@ class PositionManager:
                         with urllib.request.urlopen(treq, timeout=8) as r:
                             trades_data = __import__("json").loads(r.read())
                         for t in trades_data.get("trades", []):
-                            instr = "OANDA:" + t["instrument"].replace("_", "")
+                            instr = prefix + ":" + t["instrument"].replace("_", "")
                             entry = oanda_tpsl.setdefault(instr, {"tp": set(), "sl": set()})
                             if t.get("takeProfitOrder"):
                                 entry["tp"].add(float(t["takeProfitOrder"]["price"]))
                             if t.get("stopLossOrder"):
                                 entry["sl"].add(float(t["stopLossOrder"]["price"]))
                     except Exception as e:
-                        log.warning(f"[reconcile] OANDA openTrades (tp/sl) check failed: {e}")
+                        log.warning(f"[reconcile] OANDA[{_acct_key}] openTrades (tp/sl) check failed: {e}")
+                except Exception as e:
+                    log.warning(f"[reconcile] OANDA[{_acct_key}] openPositions check failed: {e}")
 
+            if any_oanda_account:
                     for pair, trade in list(self._trades.items()):
-                        if not pair.startswith("OANDA:") or trade.closed:
+                        if not pair.startswith(("OANDA:", "OANDA_SHORT:", "OANDA_MID:", "OANDA_LONG:")) or trade.closed:
                             continue
                         if pair not in oanda_live:
                             issues.append({"pair": pair, "issue": "in_state_not_on_oanda",
@@ -493,8 +774,6 @@ class PositionManager:
                                 issues.append({"pair": pair, "issue": "sl_mismatch",
                                                "state": trade.sl, "broker": sorted(broker_tpsl["sl"])})
                                 log.warning(f"[reconcile] {pair} sl mismatch state={trade.sl} broker={sorted(broker_tpsl['sl'])}")
-                except Exception as e:
-                    log.warning(f"[reconcile] OANDA check failed: {e}")
 
             wallet = os.environ.get("HL_WALLET_ADDRESS", "")
             if not wallet:
@@ -532,7 +811,9 @@ class PositionManager:
             _HL_ROUTED_PREFIXES = {"BINANCE", "BYBIT", "COINBASE", "KRAKEN",
                                     "BITMEX", "PIONEX", "BLOFIN", "HYPERLIQUID"}
 
-            for pair, trade in self._trades.items():
+            for pair, trade in list(self._trades.items()):
+                if trade.closed:
+                    continue
                 prefix = pair.split(":")[0].upper()
                 if prefix != "XYZ" and prefix not in _HL_ROUTED_PREFIXES:
                     continue  # not an HL-routed market — nothing to compare here
@@ -546,7 +827,13 @@ class PositionManager:
                 if real is None:
                     issues.append({"pair": pair, "issue": "in_state_not_on_exchange",
                                    "state_dir": trade.direction, "state_entry": trade.entry})
-                    log.warning(f"[reconcile] {pair} — in state but NOT on exchange")
+                    log.warning(f"[reconcile] {pair} — in state but NOT on exchange; auto-closing")
+                    # No exact fill price available here without an extra userFills
+                    # round-trip per symbol; trade.entry is the same fallback the
+                    # OANDA branch above already uses (0% pnl estimate) — the point
+                    # is to stop the position from silently rotting as "open" forever,
+                    # not to get exact realized P&L (query broker fill history for that).
+                    self.close_trade(pair, reason="reconcile_not_on_exchange", close_price=trade.entry)
                     continue
 
                 real_szi   = float(real["szi"])
