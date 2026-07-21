@@ -5,8 +5,10 @@ TV Alert Webhook Server — receives TradingView alerts and executes broker acti
 Run locally:
     python -m watcher.tv_alert_server
 
-Execute queued China open orders (cron at 09:30 CST):
-    python -m watcher.tv_alert_server --execute-queue
+China A-share signals queue into output/china_pending/{PAIR}.json; Syncthing
+replicates that folder to the Windows QMT bridge, where
+china_server/china_executor.py polls it continuously and fires each order
+at the next market open — there is no execute-queue step on this side.
 
 Expose via Cloudflare tunnel:
     cloudflared tunnel run autotrader-webhook
@@ -739,7 +741,7 @@ async def receive_alert(
             _queue_order(pair, price or 0, tf, notional)
             return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,
                     "signal_price": price, "notional": notional,
-                    "note": "Will execute at next-day open via POST /execute-queue"}
+                    "note": "Will execute at next-day open via the Windows QMT bridge's file watcher"}
 
         elif signal == -1:
             if has_position:
@@ -920,15 +922,8 @@ async def receive_alert(
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    if "--execute-queue" in sys.argv:
-        results  = execute_queue()
-        ok_count = sum(1 for r in results if r["status"] == "ok")
-        err_count = sum(1 for r in results if r["status"] == "error")
-        print(json.dumps(results, indent=2, ensure_ascii=False))
-        print(f"\n✅ {ok_count} executed  ❌ {err_count} errors")
-    else:
-        port = int(os.getenv("TV_WEBHOOK_PORT", "9999"))
-        log.info(f"TV Alert Webhook Server starting on port {port}")
-        log.info(f"Tunnel: cloudflared tunnel run autotrader-webhook")
-        log.info(f"China pending dir: {CHINA_PENDING_DIR}")
-        uvicorn.run("watcher.tv_alert_server:app", host="0.0.0.0", port=port, reload=False)
+    port = int(os.getenv("TV_WEBHOOK_PORT", "9999"))
+    log.info(f"TV Alert Webhook Server starting on port {port}")
+    log.info(f"Tunnel: cloudflared tunnel run autotrader-webhook")
+    log.info(f"China pending dir: {CHINA_PENDING_DIR}")
+    uvicorn.run("watcher.tv_alert_server:app", host="0.0.0.0", port=port, reload=False)

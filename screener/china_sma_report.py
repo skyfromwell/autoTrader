@@ -7,8 +7,10 @@ Scans SSE + SZSE, queues actions for next market open (09:30 CST):
   Golden Cross / Bull  → queue LONG via miniQMT bridge  (priority: cross > trend)
   Death Cross  / Bear  → note only (no short-selling on A-shares)
 
-Queue file: output/china_pending_orders.json
-Execution:  python -m watcher.tv_alert_server --execute-queue  (cron 09:30 CST)
+Queue: output/china_pending/{PAIR}.json (one file per pair)
+Execution: Syncthing replicates the folder to the Windows QMT bridge, where
+china_server/china_executor.py polls it continuously and fires each order —
+there is no separate execute-queue step to trigger from this side.
 """
 
 import os
@@ -36,9 +38,9 @@ TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "2130465973")
 CHINA_NOTIONAL   = int(os.getenv("CHINA_NOTIONAL_CNY", "50000"))
 
-OUTPUT_DIR   = Path("output")
-PENDING_FILE = OUTPUT_DIR / "china_pending_orders.json"
-POS_FILE     = OUTPUT_DIR / "position_state.json"
+OUTPUT_DIR  = Path("output")
+PENDING_DIR = OUTPUT_DIR / "china_pending"
+POS_FILE    = OUTPUT_DIR / "position_state.json"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s %(message)s")
@@ -136,17 +138,30 @@ def run_scan() -> list[dict]:
     return results
 
 
-# ── Queue ─────────────────────────────────────────────────────────────────────
+# ── Queue (one JSON file per pair — matches tv_alert_server.py's format;
+# Syncthing replicates output/china_pending/ to the Windows QMT bridge,
+# which polls this exact directory) ───────────────────────────────────────────
+
+def _pair_filename(pair: str) -> str:
+    return pair.replace(":", "_") + ".json"
+
 
 def _load_pending() -> dict:
-    if PENDING_FILE.exists():
-        return json.loads(PENDING_FILE.read_text())
-    return {}
+    PENDING_DIR.mkdir(parents=True, exist_ok=True)
+    result = {}
+    for f in sorted(PENDING_DIR.glob("*.json")):
+        try:
+            data = json.loads(f.read_text())
+            pair = data.get("pair") or f.stem.replace("_", ":", 1)
+            result[pair] = data
+        except Exception:
+            pass
+    return result
 
 
-def _save_pending(pending: dict) -> None:
-    PENDING_FILE.parent.mkdir(exist_ok=True)
-    PENDING_FILE.write_text(json.dumps(pending, indent=2))
+def _queue_one(pair: str, order: dict) -> None:
+    PENDING_DIR.mkdir(parents=True, exist_ok=True)
+    (PENDING_DIR / _pair_filename(pair)).write_text(json.dumps(order, indent=2))
 
 
 def update_china_queue(results: list[dict]) -> dict:
@@ -171,7 +186,7 @@ def update_china_queue(results: list[dict]) -> dict:
                 log.info(f"  ~ {sym}: already in queue — skip")
             else:
                 vol_est = int((CHINA_NOTIONAL // r["price"]) // 100) * 100
-                pending[sym] = {
+                order = {
                     "pair":         sym,
                     "notional":     CHINA_NOTIONAL,
                     "signal_price": r["price"],
@@ -180,6 +195,8 @@ def update_china_queue(results: list[dict]) -> dict:
                     "reason":       r["crossover"] or r["trend"],
                     "vol_est":      vol_est,
                 }
+                _queue_one(sym, order)
+                pending[sym] = order
                 actions["queued_long"].append((sym, r["crossover"] or r["trend"],
                                               r["price"], vol_est))
                 log.info(f"  ✅ {sym}: queued LONG  "
@@ -190,7 +207,6 @@ def update_china_queue(results: list[dict]) -> dict:
             actions["bear_noted"].append(sym)
             log.info(f"  ⚠ {sym}: BEAR signal — noted (no short on A-shares)")
 
-    _save_pending(pending)
     log.info(f"China queue: +{len(actions['queued_long'])} new  "
              f"({len(pending)} total pending)  "
              f"Bear-noted={len(actions['bear_noted'])}")
