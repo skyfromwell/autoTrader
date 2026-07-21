@@ -416,49 +416,20 @@ def _broker_live_position(pair: str) -> str | None:
 # Syncthing replicates the folder to Windows in real time.
 # china_executor.py on Windows watches the folder, executes, then deletes the file.
 # Deletion propagates back via Syncthing — no HTTP polling needed.
+# Shared with screener/china_sma_report.py and watcher/mcp_processor.py so the
+# on-disk format can't drift between the three signal sources again.
 
-def _pair_filename(pair: str) -> str:
-    """SZSE:000725 → SZSE_000725.json"""
-    return pair.replace(":", "_") + ".json"
-
-
-def _filename_to_pair(stem: str) -> str:
-    """SZSE_000725 → SZSE:000725  (replace first _ with :)"""
-    return stem.replace("_", ":", 1)
+from watcher.china_queue import (load_pending as _load_pending,
+                                  queue_order as _queue_order_raw,
+                                  dequeue as _dequeue)
 
 
-def _load_pending() -> dict:
-    CHINA_PENDING_DIR.mkdir(parents=True, exist_ok=True)
-    result = {}
-    for f in sorted(CHINA_PENDING_DIR.glob("*.json")):
-        try:
-            data = json.loads(f.read_text())
-            pair = data.get("pair") or _filename_to_pair(f.stem)
-            result[pair] = data
-        except Exception:
-            pass
-    return result
-
-
-def _queue_order(pair: str, price: float, timeframe: str, notional: int) -> None:
-    CHINA_PENDING_DIR.mkdir(parents=True, exist_ok=True)
-    order = {
-        "pair":         pair,
-        "notional":     notional,
-        "signal_price": price,
-        "timeframe":    timeframe,
-        "queued_at":    datetime.now().isoformat(timespec="seconds"),
-    }
-    fpath = CHINA_PENDING_DIR / _pair_filename(pair)
-    fpath.write_text(json.dumps(order, indent=2))
+def _queue_order(pair: str, price: float, timeframe: str, notional: int,
+                 type_: str = "tv_alert") -> None:
+    _queue_order_raw(pair, price, timeframe, notional, type_=type_)
     pending_count = len(list(CHINA_PENDING_DIR.glob("*.json")))
     log.info(f"[Queue] ➕ {pair} ({timeframe})  price={price}  notional=¥{notional:,}  "
-             f"→ {fpath.name}  ({pending_count} total)")
-
-
-def _dequeue(pair: str) -> None:
-    fpath = CHINA_PENDING_DIR / _pair_filename(pair)
-    fpath.unlink(missing_ok=True)
+             f"({pending_count} total)")
 
 
 # ── Payload ───────────────────────────────────────────────────────────────────
@@ -738,7 +709,7 @@ async def receive_alert(
                 return {"ok": True, "skipped": True, "reason": "already_queued",
                         "queued_at": pending[pair]["queued_at"]}
             notional = payload.notional if payload.notional != _NOTIONAL_DEFAULT else CHINA_NOTIONAL
-            _queue_order(pair, price or 0, tf, notional)
+            _queue_order(pair, price or 0, tf, notional, type_="tv_alert_signal")
             return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,
                     "signal_price": price, "notional": notional,
                     "note": "Will execute at next-day open via the Windows QMT bridge's file watcher"}
@@ -782,6 +753,29 @@ async def receive_alert(
         tp  = payload.chart_tp if payload.chart_tp is not None else payload.tp
         sl  = payload.chart_sl if payload.chart_sl is not None else payload.sl
         atr = payload.atr or 0
+
+        # China A-shares: no shorting, and a long here queues for the next
+        # session's open (Windows QMT bridge polls output/china_pending/)
+        # instead of the immediate-execution / flip logic below, which
+        # doesn't apply — there's no live fill yet, and there's never a
+        # legitimate existing short to flip out of.
+        if is_china:
+            if direction == "short":
+                log.warning(f"[TV→] {pair} BLOCKED — cannot short A-shares")
+                return {"ok": True, "skipped": True, "reason": "cannot_short_a_shares"}
+            trade = manager.get_trade(pair)
+            if trade and not trade.closed:
+                return {"ok": True, "skipped": True, "reason": "already_long"}
+            pending = _load_pending()
+            if pair in pending:
+                return {"ok": True, "skipped": True, "reason": "already_queued",
+                        "queued_at": pending[pair]["queued_at"]}
+            notional = payload.notional if payload.notional != _NOTIONAL_DEFAULT else CHINA_NOTIONAL
+            tf = str(payload.timeframe or "D")
+            _queue_order(pair, price or 0, tf, notional, type_="tv_alert")
+            return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,
+                    "signal_price": price, "notional": notional,
+                    "note": "Will execute at next-day open via the Windows QMT bridge's file watcher"}
 
         # Plain-text alerts (no JSON tp/sl) would otherwise open a naked forex
         # trade — fall back to the same 2.5x/5.5x ATR convention jingda uses.

@@ -34,12 +34,13 @@ from reportlab.lib.units import mm
 sys.path.insert(0, str(Path(__file__).parent.parent))
 load_dotenv(Path(__file__).parent.parent / ".env")
 
+from watcher.china_queue import load_pending as _load_pending, queue_order as _queue_order
+
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "2130465973")
 CHINA_NOTIONAL   = int(os.getenv("CHINA_NOTIONAL_CNY", "50000"))
 
 OUTPUT_DIR  = Path("output")
-PENDING_DIR = OUTPUT_DIR / "china_pending"
 POS_FILE    = OUTPUT_DIR / "position_state.json"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -110,21 +111,23 @@ def run_scan() -> list[dict]:
                 vol_ratio  = (float(vol.iloc[-1]) / float(vol.rolling(10).mean().iloc[-1])
                               if len(vol) >= 10 else 1.0)
 
-                is_cross    = bool(cross)
-                is_bullish  = "Golden" in (cross or "") or trend == "BULL"
-                is_bearish  = "Death"  in (cross or "") or trend == "BEAR"
+                is_cross      = bool(cross)
+                is_gold_cross = "Golden" in (cross or "")   # the only thing that queues a trade
+                is_bullish    = is_gold_cross or trend == "BULL"   # descriptive only (PDF/report)
+                is_bearish    = "Death"  in (cross or "") or trend == "BEAR"
 
                 results.append({
-                    "tv_symbol":  f"{cfg['tv_prefix']}:{raw}",
-                    "market":     cfg["name"],
-                    "price":      round(price, 3),
-                    "sma10":      round(s_now, 3),
-                    "sma21":      round(l_now, 3),
-                    "spread_pct": round(spread_pct, 2),
-                    "trend":      trend,
-                    "crossover":  cross or "",
-                    "vol_ratio":  round(vol_ratio, 2),
-                    "is_cross":   is_cross,
+                    "tv_symbol":     f"{cfg['tv_prefix']}:{raw}",
+                    "market":        cfg["name"],
+                    "price":         round(price, 3),
+                    "sma10":         round(s_now, 3),
+                    "sma21":         round(l_now, 3),
+                    "spread_pct":    round(spread_pct, 2),
+                    "trend":         trend,
+                    "crossover":     cross or "",
+                    "vol_ratio":     round(vol_ratio, 2),
+                    "is_cross":      is_cross,
+                    "is_gold_cross": is_gold_cross,
                     "is_bullish": is_bullish,
                     "is_bearish": is_bearish,
                     "priority":   1 if is_cross else 2,
@@ -138,38 +141,14 @@ def run_scan() -> list[dict]:
     return results
 
 
-# ── Queue (one JSON file per pair — matches tv_alert_server.py's format;
-# Syncthing replicates output/china_pending/ to the Windows QMT bridge,
-# which polls this exact directory) ───────────────────────────────────────────
-
-def _pair_filename(pair: str) -> str:
-    return pair.replace(":", "_") + ".json"
-
-
-def _load_pending() -> dict:
-    PENDING_DIR.mkdir(parents=True, exist_ok=True)
-    result = {}
-    for f in sorted(PENDING_DIR.glob("*.json")):
-        try:
-            data = json.loads(f.read_text())
-            pair = data.get("pair") or f.stem.replace("_", ":", 1)
-            result[pair] = data
-        except Exception:
-            pass
-    return result
-
-
-def _queue_one(pair: str, order: dict) -> None:
-    PENDING_DIR.mkdir(parents=True, exist_ok=True)
-    (PENDING_DIR / _pair_filename(pair)).write_text(json.dumps(order, indent=2))
-
-
 def update_china_queue(results: list[dict]) -> dict:
-    """Queue Bull/Golden-Cross symbols for next China open. Bears noted only."""
+    """Queue Golden-Cross symbols for next China open. Plain BULL trend (no
+    crossover) does NOT queue — only the discrete crossover event does,
+    otherwise every day a stock stays in an uptrend re-flags as "buy".
+    Bears noted only (no shorting A-shares)."""
     pending    = _load_pending()
     pos_data   = json.loads(POS_FILE.read_text()) if POS_FILE.exists() else {"open_trades": {}}
     open_pairs = set(pos_data.get("open_trades", {}).keys())
-    now_str    = datetime.now().isoformat(timespec="seconds")
 
     actions = {"queued_long": [], "already_queued": [], "already_long": [],
                "bear_noted": [], "skipped": []}
@@ -177,7 +156,7 @@ def update_china_queue(results: list[dict]) -> dict:
     for r in results:
         sym = r["tv_symbol"]
 
-        if r["is_bullish"]:
+        if r["is_gold_cross"]:
             if sym in open_pairs:
                 actions["already_long"].append(sym)
                 log.info(f"  ~ {sym}: already long — skip")
@@ -186,17 +165,9 @@ def update_china_queue(results: list[dict]) -> dict:
                 log.info(f"  ~ {sym}: already in queue — skip")
             else:
                 vol_est = int((CHINA_NOTIONAL // r["price"]) // 100) * 100
-                order = {
-                    "pair":         sym,
-                    "notional":     CHINA_NOTIONAL,
-                    "signal_price": r["price"],
-                    "timeframe":    "D",
-                    "queued_at":    now_str,
-                    "reason":       r["crossover"] or r["trend"],
-                    "vol_est":      vol_est,
-                }
-                _queue_one(sym, order)
-                pending[sym] = order
+                _queue_order(sym, r["price"], "D", CHINA_NOTIONAL,
+                            type_="sma_gold_cross", reason=r["crossover"])
+                pending[sym] = {"pair": sym}  # just needs to mark "now pending" for this loop
                 actions["queued_long"].append((sym, r["crossover"] or r["trend"],
                                               r["price"], vol_est))
                 log.info(f"  ✅ {sym}: queued LONG  "
