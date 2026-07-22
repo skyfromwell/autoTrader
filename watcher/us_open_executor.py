@@ -24,6 +24,17 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-8s %(message)s",
                     handlers=[logging.StreamHandler()])
 
+# Same ATR multiples as tv_alert_server.py's forex fallback
+# (_FOREX_SL_ATR_MULT/_FOREX_TP_ATR_MULT — matches jingda_ai_v2.pine's
+# _autoSl=2.5/_autoTp=5.5) — a reasonable starting point for US stocks
+# too, until/unless a different rule is wanted specifically for this
+# strategy. This screener had no TP/SL at all before (tp=None, sl=None,
+# atr=0.0 hardcoded at the call site) — Alpaca already supports bracket
+# orders, execute_trade() already accepts tp/sl, this was just never
+# computed and passed through.
+_SL_ATR_MULT = 2.5
+_TP_ATR_MULT = 5.5
+
 
 def _alpaca_client():
     from alpaca.trading.client import TradingClient
@@ -32,6 +43,27 @@ def _alpaca_client():
         secret_key=os.getenv("ALPACA_SECRET_KEY"),
         paper=True,
     )
+
+
+def _us_atr(symbol: str, period: int = 14) -> float | None:
+    """14-day ATR (true range average) from daily bars via yfinance."""
+    try:
+        import yfinance as yf
+        hist = yf.download(symbol, period=f"{period + 5}d", interval="1d",
+                           progress=False, auto_adjust=True)
+        if hist.empty or len(hist) < period + 1:
+            return None
+        high, low, close = hist["High"].squeeze(), hist["Low"].squeeze(), hist["Close"].squeeze()
+        trs, prev_close = [], None
+        for h, l, c in zip(high, low, close):
+            tr = (h - l) if prev_close is None else max(h - l, abs(h - prev_close), abs(l - prev_close))
+            trs.append(tr)
+            prev_close = c
+        trs = trs[-period:]
+        return sum(trs) / len(trs) if trs else None
+    except Exception as e:
+        log.warning(f"[{symbol}] ATR fetch failed: {e}")
+        return None
 
 
 def main():
@@ -72,7 +104,24 @@ def main():
                 except Exception:
                     pass  # no existing position, proceed
 
-                ok = alpaca_execute(tv_sym, direction, notional=notional)
+                # ATR-based tp/sl needs a price estimate up front — Alpaca's
+                # bracket orders are placed alongside the entry order itself,
+                # not computed after the fill (see _place_order's entry_price
+                # requirement in trader/trader.py).
+                atr = _us_atr(symbol)
+                tp = sl = None
+                if atr:
+                    try:
+                        import yfinance as yf
+                        last_close = float(yf.Ticker(symbol).history(period="1d")["Close"].iloc[-1])
+                        if direction == "long":
+                            tp, sl = last_close + _TP_ATR_MULT * atr, last_close - _SL_ATR_MULT * atr
+                        else:
+                            tp, sl = last_close - _TP_ATR_MULT * atr, last_close + _SL_ATR_MULT * atr
+                    except Exception as e:
+                        log.warning(f"[{tv_sym}] price estimate for tp/sl failed: {e}")
+
+                ok = alpaca_execute(tv_sym, direction, notional=notional, tp=tp, sl=sl)
                 if ok:
                     time.sleep(4)  # wait for fill
                     entry = 0.0
@@ -83,11 +132,12 @@ def main():
                         pass
                     manager.open_trade(
                         pair=tv_sym, direction=direction, entry=entry,
-                        tp=None, sl=None, atr=0.0, size=notional, features={},
+                        tp=tp, sl=sl, atr=atr or 0.0, size=notional, features={},
                         bar_time=datetime.now().isoformat(timespec="seconds"),
                         opened_by="tv_alert",
                     )
-                    log.info(f"[{tv_sym}] ✅ OPENED {direction.upper()}  entry={entry:.2f}  notional=${notional:,}")
+                    log.info(f"[{tv_sym}] ✅ OPENED {direction.upper()}  entry={entry:.2f}  "
+                             f"notional=${notional:,}  tp={tp}  sl={sl}  atr={atr}")
                     executed.append(order)
                 else:
                     log.error(f"[{tv_sym}] order placement failed")
