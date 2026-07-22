@@ -60,6 +60,26 @@ def pair_filename(pair: str) -> str:
     return pair.replace(":", "_") + ".json"
 
 
+def normalize_china_prefix(pair: str) -> str:
+    """jingda sends China A-share alerts as SSE_DLY:/SZSE_DLY: (a
+    data-vendor feed suffix, not a distinct exchange) — every caller must
+    normalize this before checking pair prefixes, or it silently misses
+    the China branch entirely and falls through to whatever the default
+    market handler is. This is exactly how SSE_DLY:600460/600048's real
+    open_long alerts (with real chart_tp/chart_sl) fell through to Alpaca
+    and failed as "asset not found" instead of ever reaching China
+    handling — found 2026-07-22, had been silently failing since at
+    least 07-16.
+    """
+    if ":" not in pair:
+        return pair
+    prefix, rest = pair.split(":", 1)
+    for raw in ("SSE", "SZSE"):
+        if prefix == f"{raw}_DLY":
+            return f"{raw}:{rest}"
+    return pair
+
+
 def load_pending() -> dict:
     """Local bookkeeping of what WE'VE already submitted — dedup only, does
     not reflect the Windows box's actual inbox/outbox state."""
@@ -76,8 +96,17 @@ def load_pending() -> dict:
 
 
 def queue_order(pair: str, price: float, timeframe: str, notional: int,
-                 type_: str, reason: str = "") -> Optional[dict]:
+                 type_: str, reason: str = "",
+                 tp: Optional[float] = None, sl: Optional[float] = None) -> Optional[dict]:
     """Submit a China long signal to the QMT mailbox over HTTP.
+
+    tp/sl (when the originating alert carries jingda's chart_tp/chart_sl)
+    get stored by qmt_mailbox_executor.py against the filled position and
+    polled each cycle — QMT has no broker-side conditional-order support
+    for A-shares, so this is the only place TP/SL can be enforced. A-share
+    T+1 settlement means a sell literally cannot fill same-day regardless;
+    the poll naturally waits for can_use_volume > 0 rather than needing
+    special-cased T+1 logic.
 
     Returns the mailbox's response ({"id": signal_id, "status": "queued"})
     on success, or None if the request failed (Windows box unreachable,
@@ -89,10 +118,16 @@ def queue_order(pair: str, price: float, timeframe: str, notional: int,
     stock  = _tv_to_qmt_stock(pair)
     volume = int((notional // price) // 100) * 100 if price and price > 0 else None
 
+    payload = {"stock": stock, "side": "buy", "volume": volume, "source": type_}
+    if tp is not None:
+        payload["tp"] = tp
+    if sl is not None:
+        payload["sl"] = sl
+
     try:
         resp = requests.post(
             f"{QMT_MAILBOX_URL}/signal",
-            json={"stock": stock, "side": "buy", "volume": volume, "source": type_},
+            json=payload,
             headers=_headers(), timeout=_TIMEOUT,
         )
         resp.raise_for_status()
@@ -108,6 +143,8 @@ def queue_order(pair: str, price: float, timeframe: str, notional: int,
         "signal_price": price,
         "timeframe":    timeframe,
         "reason":       reason,
+        "tp":           tp,
+        "sl":           sl,
         "queued_at":    datetime.now().isoformat(timespec="seconds"),
         "signal_id":    result.get("id"),
     }

@@ -205,7 +205,7 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
         if direction == "short":
             log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
             return False
-        _queue_order(pair, price or 0, "D", notional, type_="tv_alert")
+        _queue_order(pair, price or 0, "D", notional, type_="tv_alert", tp=tp, sl=sl)
         return False
     else:
         return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl))
@@ -430,17 +430,19 @@ def _broker_live_position(pair: str) -> str | None:
 from watcher.china_queue import (load_pending as _load_pending,
                                   queue_order as _queue_order_raw,
                                   close_order as _china_close_order,
+                                  normalize_china_prefix as _normalize_china_prefix,
                                   dequeue as _dequeue)
 
 
 def _queue_order(pair: str, price: float, timeframe: str, notional: int,
-                 type_: str = "tv_alert") -> dict | None:
-    result = _queue_order_raw(pair, price, timeframe, notional, type_=type_)
+                 type_: str = "tv_alert",
+                 tp: float | None = None, sl: float | None = None) -> dict | None:
+    result = _queue_order_raw(pair, price, timeframe, notional, type_=type_, tp=tp, sl=sl)
     if result is None:
         return None
     pending_count = len(list(CHINA_PENDING_DIR.glob("*.json")))
     log.info(f"[Queue] ➕ {pair} ({timeframe})  price={price}  notional=¥{notional:,}  "
-             f"({pending_count} total)")
+             f"tp={tp}  sl={sl}  ({pending_count} total)")
     return result
 
 
@@ -692,6 +694,7 @@ async def receive_alert(
         raise HTTPException(422, str(e))
 
     pair     = payload.pair.upper()
+    pair     = _normalize_china_prefix(pair)
     pair     = _route_forex_account(pair, payload.timeframe)
     price    = payload.chart_entry_price if payload.chart_entry_price is not None else payload.price
     note     = payload.note or ""
@@ -785,7 +788,7 @@ async def receive_alert(
                         "queued_at": pending[pair]["queued_at"]}
             notional = payload.notional if payload.notional != _NOTIONAL_DEFAULT else CHINA_NOTIONAL
             tf = str(payload.timeframe or "D")
-            sent = _queue_order(pair, price or 0, tf, notional, type_="tv_alert")
+            sent = _queue_order(pair, price or 0, tf, notional, type_="tv_alert", tp=tp, sl=sl)
             if sent is None:
                 return {"ok": False, "error": "mailbox_unreachable", "pair": pair}
             return {"ok": True, "action": "queued", "pair": pair, "timeframe": tf,

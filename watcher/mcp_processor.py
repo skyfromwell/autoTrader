@@ -243,7 +243,7 @@ def _broker_execute(pair: str, direction: str, price: float | None = None,
             log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
             return False
         from watcher.china_queue import queue_order as _china_queue_order
-        sent = _china_queue_order(pair, price or 0, "240", notional, type_="watcher_pull")
+        sent = _china_queue_order(pair, price or 0, "240", notional, type_="watcher_pull", tp=tp, sl=sl)
         if sent is None:
             log.error(f"[{pair}] ❌ mailbox submit failed — not queued")
         else:
@@ -288,6 +288,8 @@ def process_mcp_data(raw: dict) -> None:
     raw: dict of Jingda plot name → value (from TradingView data window).
     """
     pair = raw.get("pair", "UNKNOWN")
+    from watcher.china_queue import normalize_china_prefix as _normalize_china_prefix
+    pair = _normalize_china_prefix(pair)
     # This whole pull loop reads the chart on a fixed 4h timeframe
     # (_read_indicator_data hardcodes "240" — see watcher.py), so any OANDA
     # pair coming through here always routes to the mid (4h) account. Accounts
@@ -624,7 +626,8 @@ def handle_entry(pair: str, event: str, features: dict, raw: dict) -> None:
             return
         from watcher.china_queue import queue_order as _china_queue_order
         sent = _china_queue_order(pair, entry or 0, "240", notional,
-                                  type_="watcher_pull", reason=f"pred={pred:.0f}")
+                                  type_="watcher_pull", reason=f"pred={pred:.0f}",
+                                  tp=tp, sl=sl)
         if sent is None:
             log.error(f"[{pair}] ❌ mailbox submit failed — leaving intended signal queued to retry")
             return

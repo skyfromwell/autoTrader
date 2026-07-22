@@ -40,9 +40,15 @@ for _d in (INBOX_DIR, OUTBOX_DIR):
 
 def submit_signal(stock: str, side: str, volume: Optional[int] = None,
                   max_position_volume: Optional[int] = None,
-                  source: str = "tv_signal") -> str:
+                  source: str = "tv_signal",
+                  tp: Optional[float] = None, sl: Optional[float] = None) -> str:
     """Atomically writes one signal file into the inbox. Returns the
-    signal id so the caller can later poll get_status(signal_id)."""
+    signal id so the caller can later poll get_status(signal_id).
+
+    tp/sl (buy signals only) get stored by qmt_mailbox_executor.py against
+    the filled position — QMT has no broker-side conditional-order support
+    for A-shares, so the QMT-side script polls price against these each
+    cycle and fires its own sell when crossed."""
     side = side.lower()
     if side not in ("buy", "sell", "close"):
         raise ValueError(f"invalid side: {side}")
@@ -53,6 +59,10 @@ def submit_signal(stock: str, side: str, volume: Optional[int] = None,
         payload["volume"] = int(volume)
     if max_position_volume is not None:
         payload["max_position_volume"] = int(max_position_volume)
+    if tp is not None:
+        payload["tp"] = float(tp)
+    if sl is not None:
+        payload["sl"] = float(sl)
 
     final_path = os.path.join(INBOX_DIR, f"{signal_id}.json")
     tmp_path   = final_path + ".tmp"
@@ -93,6 +103,8 @@ class SignalRequest(BaseModel):
     volume:              Optional[int] = None
     max_position_volume: Optional[int] = None
     source:              str = "tv_signal"
+    tp:                  Optional[float] = None
+    sl:                  Optional[float] = None
 
 
 @app.get("/health")
@@ -106,7 +118,7 @@ def post_signal(req: SignalRequest, x_api_key: str = Header(None, alias="X-API-K
     try:
         signal_id = submit_signal(stock=req.stock, side=req.side, volume=req.volume,
                                   max_position_volume=req.max_position_volume,
-                                  source=req.source)
+                                  source=req.source, tp=req.tp, sl=req.sl)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"id": signal_id, "status": "queued"}
