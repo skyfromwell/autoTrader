@@ -26,8 +26,22 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "2130465973")
 OANDA_KEY        = os.getenv("OANDA_API_KEY", "")
-OANDA_ACCOUNT    = os.getenv("OANDA_ACCOUNT_ID", "")
 OANDA_BASE       = os.getenv("OANDA_BASE_URL", "https://api-fxtrade.oanda.com/v3")
+
+# Four independent accounts split by signal timeframe — see
+# trader/oanda_trader.py's _ACCOUNTS for the canonical definition. This
+# report previously only ever queried OANDA_ACCOUNT_ID (mix), so the
+# short/mid/long accounts added later never showed up here at all.
+OANDA_ACCOUNTS = {
+    "mix":   {"key": OANDA_KEY, "account": os.getenv("OANDA_ACCOUNT_ID", ""),       "prefix": "OANDA"},
+    "short": {"key": OANDA_KEY, "account": os.getenv("OANDA_ACCOUNT_ID_SHORT", ""), "prefix": "OANDA_SHORT"},
+    "mid":   {"key": OANDA_KEY, "account": os.getenv("OANDA_ACCOUNT_ID_MID", ""),   "prefix": "OANDA_MID"},
+    "long":  {"key": OANDA_KEY, "account": os.getenv("OANDA_ACCOUNT_ID_LONG", ""),  "prefix": "OANDA_LONG"},
+}
+# Kept for fetch_rates()/fetch_sr() — pure market-data endpoints (pricing,
+# candles) aren't account-specific, they just need any valid account in
+# the URL path, so mix's credentials are fine to reuse there.
+OANDA_ACCOUNT = OANDA_ACCOUNTS["mix"]["account"]
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -51,10 +65,11 @@ WARN_AMBER = colors.HexColor("#fff3cd")
 
 # ── OANDA helpers ─────────────────────────────────────────────────────────────
 
-def _get(path: str) -> dict:
+def _get(path: str, account: str = "mix") -> dict:
+    creds = OANDA_ACCOUNTS[account]
     req = urllib.request.Request(
         f"{OANDA_BASE}{path}",
-        headers={"Authorization": f"Bearer {OANDA_KEY}",
+        headers={"Authorization": f"Bearer {creds['key']}",
                  "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=10) as r:
@@ -63,49 +78,60 @@ def _get(path: str) -> dict:
 
 def fetch_positions() -> list[dict]:
     positions = []
-    try:
-        raw = _get(f"/accounts/{OANDA_ACCOUNT}/openPositions")
-        for p in raw.get("positions", []):
-            instr = p["instrument"]
-            for side_key, sign in [("long", 1), ("short", -1)]:
-                units = int(p.get(side_key, {}).get("units", 0))
-                if units == 0:
-                    continue
-                entry = float(p[side_key].get("averagePrice", 0))
-                upnl  = float(p[side_key].get("unrealizedPL", 0))
-                positions.append({
-                    "instrument": instr,
-                    "pair":       instr.replace("_", "/"),
-                    "side":       side_key.upper(),
-                    "units":      abs(units),
-                    "entry":      entry,
-                    "upnl":       upnl,
-                    "current":    0.0,
-                    "tp":         None,
-                    "sl":         None,
-                    "age_days":   None,
-                })
-    except Exception as e:
-        log.warning(f"Positions fetch failed: {e}")
+    for label, creds in OANDA_ACCOUNTS.items():
+        if not creds["account"]:
+            continue
+        try:
+            raw = _get(f"/accounts/{creds['account']}/openPositions", account=label)
+            for p in raw.get("positions", []):
+                instr = p["instrument"]
+                for side_key, sign in [("long", 1), ("short", -1)]:
+                    units = int(p.get(side_key, {}).get("units", 0))
+                    if units == 0:
+                        continue
+                    entry = float(p[side_key].get("averagePrice", 0))
+                    upnl  = float(p[side_key].get("unrealizedPL", 0))
+                    positions.append({
+                        "instrument": instr,
+                        "pair":       instr.replace("_", "/"),
+                        "account":    label,
+                        "side":       side_key.upper(),
+                        "units":      abs(units),
+                        "entry":      entry,
+                        "upnl":       upnl,
+                        "current":    0.0,
+                        "tp":         None,
+                        "sl":         None,
+                        "age_days":   None,
+                    })
+        except Exception as e:
+            log.warning(f"Positions fetch failed for {label}: {e}")
 
-    # Enrich from position_state.json
+    # Enrich from position_state.json — each account tracks under its own
+    # prefix (OANDA:/OANDA_SHORT:/OANDA_MID:/OANDA_LONG:), so look up using
+    # the same account this position actually came from, not a fixed list.
     try:
         state = json.loads(STATE_FILE.read_text()).get("open_trades", {})
         for pos in positions:
-            for prefix in ("OANDA", "FX"):
-                key = f"{prefix}:{pos['pair']}"
-                if key in state:
-                    t = state[key]
-                    pos["tp"] = t.get("tp")
-                    pos["sl"] = t.get("sl")
-                    if t.get("open_time"):
-                        try:
-                            pos["age_days"] = (
-                                datetime.now() - datetime.fromisoformat(t["open_time"])
-                            ).days
-                        except Exception:
-                            pass
-                    break
+            prefix = OANDA_ACCOUNTS[pos["account"]]["prefix"]
+            # position_state.json keys have no slash (OANDA:NZDUSD, not
+            # OANDA:NZD/USD) — pos["pair"] has one for display purposes,
+            # so use the raw instrument code here instead. This lookup
+            # never actually matched anything before this fix, on any
+            # account, so tp/sl/age have been silently blank in every
+            # report to date.
+            key = f"{prefix}:{pos['instrument'].replace('_', '')}"
+            if key in state:
+                t = state[key]
+                pos["tp"] = t.get("tp")
+                pos["sl"] = t.get("sl")
+                if t.get("open_time"):
+                    try:
+                        pos["age_days"] = (
+                            datetime.now() - datetime.fromisoformat(t["open_time"])
+                        ).days
+                    except Exception:
+                        pass
     except Exception:
         pass
 
@@ -202,58 +228,88 @@ def generate_pdf(positions: list[dict], rates: dict, sr: dict, pdf_path: str) ->
     ))
 
     # ── Open Positions ────────────────────────────────────────────────────────
+    # Grouped by account — mix/short/mid/long are independent capital pools
+    # (see trader/oanda_trader.py), so a flat list would blur together
+    # positions that don't actually share risk or margin with each other.
     if positions:
         story.append(Paragraph("Open Positions", h2))
         total_upnl = sum(p["upnl"] for p in positions)
+        account_labels = {"mix": "Mix account", "short": "Short/1h account",
+                          "mid": "Mid/4h account", "long": "Long/1D account"}
 
-        hdr  = ["Pair", "Side", "Units", "Entry", "Current", "uPnL", "TP", "SL", "Age"]
-        cw   = [55, 38, 50, 58, 58, 52, 54, 54, 32]
-        rows = [hdr]
-        row_colors = []
+        for label in ("mix", "short", "mid", "long"):
+            acct_positions = [p for p in positions if p["account"] == label]
+            if not acct_positions and label != "mix":
+                continue  # skip empty split accounts, but always show mix
 
-        for i, p in enumerate(positions, 1):
-            instr   = p["instrument"]
-            current = rates.get(instr, {}).get("mid", p["entry"])
-            p["current"] = current
-            dist_tp = ""
-            if p["tp"]:
-                sign   = 1 if p["side"] == "LONG" else -1
-                pct    = (p["tp"] - current) / current * 100 * sign
-                dist_tp = f"{pct:+.2f}%"
-            rows.append([
-                p["pair"],
-                p["side"],
-                f"{p['units']:,}",
-                f"{p['entry']:.5f}",
-                f"{current:.5f}",
-                f"${p['upnl']:+,.2f}",
-                f"{p['tp']:.5f}" if p["tp"] else "—",
-                f"{p['sl']:.5f}" if p["sl"] else "—",
-                f"{p['age_days']}d" if p["age_days"] is not None else "—",
+            story.append(Paragraph(account_labels[label], ParagraphStyle(
+                "acct", parent=styles["Heading3"], fontSize=9,
+                textColor=FX_TEAL, spaceBefore=4, spaceAfter=2)))
+
+            hdr  = ["Pair", "Side", "Units", "Entry", "Current", "uPnL", "TP", "SL", "Age"]
+            cw   = [55, 38, 50, 58, 58, 52, 54, 54, 32]
+            rows = [hdr]
+            row_colors = []
+            acct_upnl = sum(p["upnl"] for p in acct_positions)
+
+            for i, p in enumerate(acct_positions, 1):
+                instr   = p["instrument"]
+                current = rates.get(instr, {}).get("mid", p["entry"])
+                p["current"] = current
+                rows.append([
+                    p["pair"],
+                    p["side"],
+                    f"{p['units']:,}",
+                    f"{p['entry']:.5f}",
+                    f"{current:.5f}",
+                    f"${p['upnl']:+,.2f}",
+                    f"{p['tp']:.5f}" if p["tp"] else "—",
+                    f"{p['sl']:.5f}" if p["sl"] else "—",
+                    f"{p['age_days']}d" if p["age_days"] is not None else "—",
+                ])
+                row_colors.append(("BACKGROUND", (5, i), (5, i), _pnl_color(p["upnl"])))
+
+            if not acct_positions:
+                story.append(Paragraph("No open positions", sub))
+                continue
+
+            t = Table(rows, colWidths=cw)
+            ts = TableStyle([
+                ("BACKGROUND",    (0, 0), (-1, 0), DARK_BLUE),
+                ("TEXTCOLOR",     (0, 0), (-1, 0), colors.white),
+                ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE",      (0, 0), (-1, -1), 8),
+                ("GRID",          (0, 0), (-1, -1), 0.4, colors.grey),
+                ("ALIGN",         (2, 0), (-1, -1), "RIGHT"),
+                ("ALIGN",         (0, 0), (1, -1), "LEFT"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+                ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, ALT_ROW]),
             ])
-            row_colors.append(("BACKGROUND", (5, i), (5, i), _pnl_color(p["upnl"])))
+            for rc in row_colors:
+                ts.add(*rc)
+            t.setStyle(ts)
+            story.append(t)
 
-        t = Table(rows, colWidths=cw)
-        ts = TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, 0), DARK_BLUE),
-            ("TEXTCOLOR",     (0, 0), (-1, 0), colors.white),
-            ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE",      (0, 0), (-1, -1), 8),
-            ("GRID",          (0, 0), (-1, -1), 0.4, colors.grey),
-            ("ALIGN",         (2, 0), (-1, -1), "RIGHT"),
-            ("ALIGN",         (0, 0), (1, -1), "LEFT"),
-            ("TOPPADDING",    (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 4),
-            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, ALT_ROW]),
-        ])
-        for rc in row_colors:
-            ts.add(*rc)
-        t.setStyle(ts)
-        story.append(t)
+            # Per-account subtotal row
+            sub_t = Table([[f"{account_labels[label]} subtotal", f"${acct_upnl:+,.2f}"]],
+                          colWidths=[200, 100])
+            sub_t.setStyle(TableStyle([
+                ("FONTNAME",      (0, 0), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE",      (0, 0), (-1, -1), 8),
+                ("ALIGN",         (1, 0), (1, 0),   "RIGHT"),
+                ("BACKGROUND",    (0, 0), (-1, -1), _pnl_color(acct_upnl)),
+                ("TOPPADDING",    (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+            ]))
+            story.append(Spacer(1, 2))
+            story.append(sub_t)
+            story.append(Spacer(1, 8))
 
-        # Total PnL row
-        total_t = Table([["Total unrealized PnL", f"${total_upnl:+,.2f}"]],
+        # Grand total across all accounts
+        total_t = Table([["Total unrealized PnL (all accounts)", f"${total_upnl:+,.2f}"]],
                         colWidths=[200, 100])
         total_t.setStyle(TableStyle([
             ("FONTNAME",      (0, 0), (-1, -1), "Helvetica-Bold"),
@@ -339,6 +395,13 @@ def send_to_telegram(pdf_path: str, positions: list[dict], rates: dict):
     lines = [f"{sign} Forex Afternoon Report — {datetime.now().strftime('%Y-%m-%d %H:%M PT')}"]
     if positions:
         lines.append(f"{len(positions)} open position(s)  |  uPnL: ${total_upnl:+,.2f}")
+        account_labels = {"mix": "Mix", "short": "Short/1h", "mid": "Mid/4h", "long": "Long/1D"}
+        for label, name in account_labels.items():
+            acct_positions = [p for p in positions if p["account"] == label]
+            if not acct_positions:
+                continue
+            acct_upnl = sum(p["upnl"] for p in acct_positions)
+            lines.append(f"  {name}: {len(acct_positions)} pos  ${acct_upnl:+,.2f}")
     else:
         lines.append("No open FX positions")
 
