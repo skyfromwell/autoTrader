@@ -43,6 +43,9 @@ OANDA_ACCOUNTS = {
 # the URL path, so mix's credentials are fine to reuse there.
 OANDA_ACCOUNT = OANDA_ACCOUNTS["mix"]["account"]
 
+# Starting balances for change% tracking — set when each account was funded.
+STARTING_BALANCE = {"mix": 20_000, "short": 50_000, "mid": 50_000, "long": 10_000}
+
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 STATE_FILE = Path(__file__).parent.parent / "output" / "position_state.json"
@@ -176,6 +179,27 @@ def fetch_rates(instruments: list[str]) -> dict[str, dict]:
     return rates
 
 
+def fetch_account_nav() -> dict[str, dict]:
+    """NAV + change vs. STARTING_BALANCE for each of the 4 accounts."""
+    nav = {}
+    for label, creds in OANDA_ACCOUNTS.items():
+        if not creds["account"]:
+            continue
+        try:
+            data = _get(f"/accounts/{creds['account']}/summary", account=label)["account"]
+            current = float(data.get("NAV", 0))
+            start   = STARTING_BALANCE.get(label, current)
+            nav[label] = {
+                "nav":         current,
+                "starting":    start,
+                "change":      current - start,
+                "change_pct":  (current - start) / start * 100 if start else 0.0,
+            }
+        except Exception as e:
+            log.warning(f"NAV fetch failed for {label}: {e}")
+    return nav
+
+
 def fetch_sr(instrument: str, lookback: int = 30) -> dict:
     """Compute swing S/R from OANDA daily candles."""
     try:
@@ -209,7 +233,7 @@ def _chg_color(v: float) -> colors.Color:
     return PROFIT_GRN if v > 0 else (LOSS_RED if v < 0 else ALT_ROW)
 
 
-def generate_pdf(positions: list[dict], rates: dict, sr: dict, pdf_path: str) -> str:
+def generate_pdf(positions: list[dict], rates: dict, sr: dict, nav: dict, pdf_path: str) -> str:
     doc    = SimpleDocTemplate(pdf_path, pagesize=A4,
                                leftMargin=12*mm, rightMargin=12*mm,
                                topMargin=12*mm, bottomMargin=12*mm)
@@ -226,6 +250,47 @@ def generate_pdf(positions: list[dict], rates: dict, sr: dict, pdf_path: str) ->
         f"{len(positions)} open position{'s' if len(positions) != 1 else ''}",
         sub
     ))
+
+    # ── Account NAV ───────────────────────────────────────────────────────────
+    if nav:
+        story.append(Paragraph("Account NAV", h2))
+        account_labels = {"mix": "Mix", "short": "Short/1h", "mid": "Mid/4h", "long": "Long/1D"}
+        nav_hdr = ["Account", "Starting", "NAV", "Change $", "Change %"]
+        nav_cw  = [90, 70, 70, 70, 60]
+        nav_rows = [nav_hdr]
+        nav_colors = []
+        for i, label in enumerate(("mix", "short", "mid", "long"), 1):
+            n = nav.get(label)
+            if not n:
+                continue
+            nav_rows.append([
+                account_labels[label],
+                f"${n['starting']:,.0f}",
+                f"${n['nav']:,.2f}",
+                f"${n['change']:+,.2f}",
+                f"{n['change_pct']:+.2f}%",
+            ])
+            nav_colors.append(("BACKGROUND", (4, len(nav_rows) - 1), (4, len(nav_rows) - 1),
+                               _pnl_color(n['change_pct'])))
+        nav_t = Table(nav_rows, colWidths=nav_cw)
+        nav_ts = TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0), DARK_BLUE),
+            ("TEXTCOLOR",     (0, 0), (-1, 0), colors.white),
+            ("FONTNAME",      (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE",      (0, 0), (-1, -1), 8),
+            ("GRID",          (0, 0), (-1, -1), 0.4, colors.grey),
+            ("ALIGN",         (1, 0), (-1, -1), "RIGHT"),
+            ("ALIGN",         (0, 0), (0, -1), "LEFT"),
+            ("TOPPADDING",    (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, ALT_ROW]),
+        ])
+        for nc in nav_colors:
+            nav_ts.add(*nc)
+        nav_t.setStyle(nav_ts)
+        story.append(nav_t)
+        story.append(Spacer(1, 10))
 
     # ── Open Positions ────────────────────────────────────────────────────────
     # Grouped by account — mix/short/mid/long are independent capital pools
@@ -386,13 +451,24 @@ def generate_pdf(positions: list[dict], rates: dict, sr: dict, pdf_path: str) ->
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
-def send_to_telegram(pdf_path: str, positions: list[dict], rates: dict):
+def send_to_telegram(pdf_path: str, positions: list[dict], rates: dict, nav: dict):
     if not TELEGRAM_TOKEN:
         return
     total_upnl = sum(p["upnl"] for p in positions)
     sign       = "📈" if total_upnl >= 0 else "📉"
 
     lines = [f"{sign} Forex Afternoon Report — {datetime.now().strftime('%Y-%m-%d %H:%M PT')}"]
+
+    if nav:
+        account_labels = {"mix": "Mix", "short": "Short/1h", "mid": "Mid/4h", "long": "Long/1D"}
+        lines.append("NAV:")
+        for label, name in account_labels.items():
+            n = nav.get(label)
+            if not n:
+                continue
+            lines.append(f"  {name}: ${n['nav']:,.2f}  ({n['change_pct']:+.2f}%)")
+        lines.append("")
+
     if positions:
         lines.append(f"{len(positions)} open position(s)  |  uPnL: ${total_upnl:+,.2f}")
         account_labels = {"mix": "Mix", "short": "Short/1h", "mid": "Mid/4h", "long": "Long/1D"}
@@ -436,6 +512,10 @@ def main():
     positions = fetch_positions()
     log.info(f"Open FX positions: {len(positions)}")
 
+    nav = fetch_account_nav()
+    for label, n in nav.items():
+        log.info(f"  NAV[{label}]: ${n['nav']:,.2f}  ({n['change_pct']:+.2f}%)")
+
     # Collect instruments to price (watched + open positions)
     open_instrs = [p["instrument"] for p in positions]
     all_instrs  = list(dict.fromkeys(WATCHED_PAIRS + open_instrs))
@@ -452,8 +532,8 @@ def main():
 
     ts       = datetime.now().strftime("%Y%m%d_%H%M")
     pdf_path = str(OUTPUT_DIR / f"forex_report_{ts}.pdf")
-    generate_pdf(positions, rates, sr, pdf_path)
-    send_to_telegram(pdf_path, positions, rates)
+    generate_pdf(positions, rates, sr, nav, pdf_path)
+    send_to_telegram(pdf_path, positions, rates, nav)
 
 
 if __name__ == "__main__":
