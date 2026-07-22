@@ -333,6 +333,22 @@ def process_mcp_data(raw: dict) -> None:
 
 # ─── Trade Protection ─────────────────────────────────────────────────────────
 
+def _calc_protective_sl(direction: str, entry: float, atr: float, level: str) -> float:
+    """ATR-scaled protective stop, independent of the sub_tp webhook tier
+    ratchet (this fires from the pull loop's own chart-reported "Protect
+    Long/Short" + "TP Progress" plots, so it can still protect a trade even
+    if a sub_tp alert never arrives). "medium" locks in breakeven — same
+    0%-level convention as sub_tp tier=1 — "high" locks in a modest 1x-ATR
+    profit on top of that, scaled consistently with this codebase's other
+    ATR multiples (2.5x/5.5x SL/TP for forex, etc.) without being as
+    aggressive as the full TP-side ratchet tiers.
+    """
+    lock_atr = {"medium": 0.0, "high": 1.0}[level]
+    if direction == "long":
+        return entry + lock_atr * atr
+    return entry - lock_atr * atr
+
+
 def check_trade_protection(pair: str, raw: dict, features: dict) -> None:
     trade = manager.get_trade(pair)
     if not trade or trade.closed or trade.protected_sl is not None:
@@ -353,8 +369,7 @@ def check_trade_protection(pair: str, raw: dict, features: dict) -> None:
     log.info(f"[{pair}] 🛡️ PROTECTION  progress={tp_progress:.0%}  "
              f"level={level}  sl {trade.sl:.5f} → {new_sl:.5f}")
     manager.move_sl(pair, new_sl, reason=f"protection_{level}")
-    # Note: stock SL moves are tracked in state only (Alpaca doesn't support
-    # modifying orders on paper account easily — add OCO when going live)
+    _broker_move_sl(pair, new_sl)
 
 
 # ─── Price-level Trigger Checker ─────────────────────────────────────────────
