@@ -39,7 +39,7 @@ load_dotenv()
 
 log = logging.getLogger(__name__)
 
-QMT_MAILBOX_URL = os.environ.get("QMT_MAILBOX_URL", "http://100.64.0.3:8800")
+QMT_MAILBOX_URL = os.environ.get("QMT_MAILBOX_URL", "http://100.64.0.7:8800")
 QMT_MAILBOX_KEY = os.environ.get("QMT_MAILBOX_API_KEY", "")
 PENDING_DIR     = Path("output/china_pending")   # local bookkeeping only
 _TIMEOUT        = 10
