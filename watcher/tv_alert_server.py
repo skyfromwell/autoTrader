@@ -427,6 +427,24 @@ def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: Backgroun
         log.warning(f"[{pair}] sub_tp tier={payload.tier} — no tp recorded, skipping ratchet")
         return {"skipped": True, "reason": "no_tp_recorded"}
 
+    # sub_tp alerts carry no timeframe field (unlike open_long/open_short),
+    # so a shorter-timeframe stream of the same Pine script tracking its own
+    # progress toward its own, much closer target can fire tier events for
+    # this same ticker — find_by_ticker() has no way to reject them, it just
+    # matches whatever position is currently open. Root-caused the ONDO
+    # close this way: position opened via a 1D signal (tp=0.54663), but the
+    # tier=3 alert that ratcheted its SL carried chart_tp=0.39002 — a ~6.9x
+    # ATR divergence, clearly a different signal stream, not this bar's own
+    # target drifting. Reject rather than ratchet against a mismatched tp.
+    if payload.chart_tp is not None and trade.atr:
+        tp_divergence_atr = abs(tp - payload.chart_tp) / trade.atr
+        if tp_divergence_atr > 2.0:
+            log.warning(f"[{pair}] sub_tp tier={payload.tier} chart_tp={payload.chart_tp} "
+                        f"diverges {tp_divergence_atr:.1f}x ATR from recorded tp={tp} — "
+                        f"likely a different timeframe's signal stream, skipping ratchet")
+            return {"skipped": True, "reason": "tp_mismatch_likely_different_timeframe",
+                    "recorded_tp": tp, "alert_chart_tp": payload.chart_tp}
+
     new_sl = entry + fraction * (tp - entry) if trade.direction == "long" \
         else entry - fraction * (entry - tp)
 
