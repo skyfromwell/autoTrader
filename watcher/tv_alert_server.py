@@ -325,6 +325,39 @@ def _hl_move_sl(pair: str, new_sl: float) -> None:
         log.warning(f"[{pair}] Hyperliquid SL move exception: {e}")
 
 
+def _xyz_move_sl(pair: str, new_sl: float) -> None:
+    """Cancel the resting xyz-DEX SL trigger order and place a new one at new_sl.
+    Separate from _hl_move_sl because xyz coins resolve through tv_to_xyz()
+    (e.g. "xyz:BRENTOIL"), not hyperliquid_trader.py's mainnet _hl_coin() —
+    this asset class was previously falling through _handle_sub_tp's
+    prefix dispatch entirely (HIP3XYZ isn't in _CRYPTO_PREFIXES), so every
+    ratchet updated local state only while the real broker-side stop
+    stayed at its original, un-ratcheted level."""
+    xyz_coin = tv_to_xyz(pair)
+    if not xyz_coin:
+        return
+    trade = manager.get_trade(pair)
+    direction = trade.direction if trade else "long"
+    try:
+        result = xyz_move_sl_fn(xyz_coin, new_sl, direction)
+        # xyz_trader.move_sl() returns the raw Hyperliquid SDK order
+        # response ({"status": "ok", "response": {...}}), not a
+        # {"success": ...} shape — checking for "success" here would
+        # always be falsy and misreport every successful move as failed.
+        statuses = result.get("response", {}).get("data", {}).get("statuses", [{}])
+        ok = result.get("status") == "ok" and (
+            "resting" in statuses[0] or "filled" in statuses[0])
+        if ok:
+            if trade:
+                trade.sl_tp_source = "broker"
+                manager._save()
+            log.info(f"[{pair}] xyz SL moved → {new_sl}")
+        else:
+            log.warning(f"[{pair}] xyz SL move failed: {result}")
+    except Exception as e:
+        log.warning(f"[{pair}] xyz SL move exception: {e}")
+
+
 # SL-ratchet fractions per tier — see feedback_sl_move_rule: 25% progress → BE,
 # 50% → the 25% level, 75% → the 50% level. Only ever tightens, never loosens.
 _SUB_TP_RATCHET = {1: 0.0, 2: 0.25, 3: 0.50}
@@ -374,7 +407,9 @@ def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: Backgroun
     # only TradingView's delivery status showed a false "timed out"). Local
     # state above is already ratcheted synchronously; defer only the broker
     # push so the HTTP response returns immediately.
-    if _prefix(pair) in _FOREX_PREFIXES:
+    if tv_to_xyz(pair):
+        background_tasks.add_task(_xyz_move_sl, pair, new_sl)
+    elif _prefix(pair) in _FOREX_PREFIXES:
         background_tasks.add_task(_oanda_move_sl, pair, new_sl)
     elif _prefix(pair) in _CRYPTO_PREFIXES:
         background_tasks.add_task(_hl_move_sl, pair, new_sl)
