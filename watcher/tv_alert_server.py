@@ -113,26 +113,38 @@ def _route_forex_account(pair: str, timeframe: str | None) -> str:
 _CHINESE_PREFIXES  = {"SSE", "SZSE", "HKEX", "SHSE"}
 _VALID_TIMEFRAMES  = {"30", "60", "240", "D"}
 
-# The 7 USD majors trade at 50x margin on OANDA vs 20x for crosses — size up
-# accordingly so risk-per-trade (margin used) stays consistent across pairs.
-_FOREX_MAJOR_USD_PAIRS = {"EURUSD", "GBPUSD", "AUDUSD", "NZDUSD",
-                          "USDJPY", "USDCHF", "USDCAD"}
+# Three margin-rate tiers, not two — any pair involving GBP or JPY (whether
+# a straight USD pair like GBPUSD/USDJPY or a cross like GBPAUD/EURJPY)
+# carries almost double OANDA's margin requirement of the other 5 USD
+# majors, so it gets half their notional to keep $ margin used roughly
+# consistent per trade. Plain crosses (no USD, no GBP, no JPY) are their
+# own lower, separate tier as before.
+_FOREX_OTHER_MAJOR_PAIRS = {"EURUSD", "AUDUSD", "NZDUSD", "USDCHF", "USDCAD"}
 
-# Base sizing per split account: (major-pair notional, other-pair notional).
-# short/mid carry more balance ($50k vs mix's ~$22k) and trade more often, so
-# they run 2x mix's sizing. long carries less balance but trades rarely (1D
-# signals), so it just inherits mix's rule unscaled rather than being sized
-# down — infrequent trades don't need throttling the same way.
+
+def _forex_pair_tier(base: str) -> str:
+    if "GBP" in base or "JPY" in base:
+        return "gbpjpy"
+    if base in _FOREX_OTHER_MAJOR_PAIRS:
+        return "major"
+    return "cross"
+
+
+# Base sizing per split account: {tier: notional}. short/mid carry more
+# balance ($50k vs mix's ~$22k) and trade more often, so they run larger
+# size than mix. long carries less balance but trades rarely (1D signals),
+# so it just inherits mix's rule unscaled rather than being sized down —
+# infrequent trades don't need throttling the same way.
 _FOREX_ACCOUNT_NOTIONAL = {
-    "mix":   (50_000, _NOTIONAL_DEFAULT),
-    "long":  (50_000, _NOTIONAL_DEFAULT),
-    "short": (100_000, 20_000),
-    "mid":   (100_000, 20_000),
+    "mix":   {"gbpjpy": 100_000, "major": 200_000, "cross": 50_000},
+    "long":  {"gbpjpy": 100_000, "major": 200_000, "cross": 50_000},
+    "short": {"gbpjpy": 150_000, "major": 300_000, "cross": 100_000},
+    "mid":   {"gbpjpy": 150_000, "major": 300_000, "cross": 100_000},
 }
 
 
 def _forex_notional(pair: str, requested: int) -> int:
-    """Scale forex position size by account and USD-major status.
+    """Scale forex position size by account and pair margin tier.
 
     Only applies when the alert left notional at the generic default — an
     alert that explicitly requests a different size is always respected.
@@ -142,9 +154,9 @@ def _forex_notional(pair: str, requested: int) -> int:
     if _prefix(pair) not in _FOREX_PREFIXES or requested != _NOTIONAL_DEFAULT:
         return requested
     account = _oanda_account_for(pair)
-    major_notional, other_notional = _FOREX_ACCOUNT_NOTIONAL.get(account, _FOREX_ACCOUNT_NOTIONAL["mix"])
+    tiers = _FOREX_ACCOUNT_NOTIONAL.get(account, _FOREX_ACCOUNT_NOTIONAL["mix"])
     base = pair.split(":", 1)[-1].upper()
-    return major_notional if base in _FOREX_MAJOR_USD_PAIRS else other_notional
+    return tiers[_forex_pair_tier(base)]
 
 app     = FastAPI(title="TV Alert Webhook")
 manager = PositionManager()
