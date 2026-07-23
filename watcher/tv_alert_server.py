@@ -363,6 +363,47 @@ def _xyz_move_sl(pair: str, new_sl: float) -> None:
 _SUB_TP_RATCHET = {1: 0.0, 2: 0.25, 3: 0.50}
 
 
+def _current_price(pair: str) -> float | None:
+    """Live price for pair — used to validate a ratchet's computed new_sl
+    before it ever reaches local state or a broker. Root cause of both the
+    ONDO close (2026-07-21) and the BRENT/CL incident (2026-07-22): the
+    ratchet formula computes new_sl purely from entry/tp/fraction, using
+    the chart's OWN progress reporting to decide the tier fires at all —
+    if the chart's progress has diverged from what the instrument actually
+    traded at (confirmed for ONDO: ratchet target 0.455275, real high ever
+    reached 0.4107), the computed new_sl can land on the wrong side of
+    real current price. Pushing that to a broker as a stop trigger doesn't
+    wait for price to "arrive" — it's already past it, so it fires
+    immediately. This check catches that before it happens, instead of
+    only being discoverable afterward from fill data."""
+    xyz_coin = tv_to_xyz(pair)
+    try:
+        if xyz_coin:
+            from trader.xyz_trader import get_mid
+            return get_mid(xyz_coin)
+        p = _prefix(pair)
+        if p in _FOREX_PREFIXES:
+            instrument = _oanda_instrument(pair)
+            account    = _oanda_account_for(pair)
+            acct_id    = _oanda_account_id_for(pair)
+            r = oanda_request("GET", f"/accounts/{acct_id}/pricing?instruments={instrument}",
+                              account=account)
+            prices = r.get("prices", [])
+            if prices:
+                bid = float(prices[0]["bids"][0]["price"])
+                ask = float(prices[0]["asks"][0]["price"])
+                return (bid + ask) / 2
+        elif p in _CRYPTO_PREFIXES:
+            coin = pair.split(":")[-1].replace("USDC.P", "").replace("USDT.P", "")
+            import requests as _req
+            r = _req.post("https://api.hyperliquid.xyz/info", json={"type": "allMids"}, timeout=5)
+            mid = r.json().get(coin)
+            return float(mid) if mid else None
+    except Exception as e:
+        log.warning(f"[{pair}] current price fetch failed: {e}")
+    return None
+
+
 def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: BackgroundTasks) -> dict:
     trade = manager.find_by_ticker(pair, hint_entry=payload.chart_entry_price)
     if not trade or trade.closed:
@@ -394,6 +435,29 @@ def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: Backgroun
                   (trade.direction == "short" and new_sl >= trade.sl)
         if tighter:
             return {"skipped": True, "reason": "sl_already_better"}
+
+    # Safety check: the ratchet target must be on the correct side of REAL
+    # current price, not just algebraically between entry and tp — see
+    # _current_price()'s docstring for the ONDO/BRENT/CL incidents this
+    # guards against. A target already past current price would trigger a
+    # broker stop immediately instead of waiting for price to reach it, and
+    # would also leave local state showing a misleading SL nothing enforces
+    # correctly. Skip entirely (don't touch local state either) rather than
+    # push something unverifiable — the next sub_tp tier will retry.
+    current = _current_price(pair)
+    if current is None:
+        log.warning(f"[{pair}] sub_tp tier={payload.tier} — could not verify current "
+                    f"price, skipping ratchet rather than risk an unsafe push")
+        return {"skipped": True, "reason": "current_price_unavailable"}
+    unsafe = (trade.direction == "long" and new_sl >= current) or \
+             (trade.direction == "short" and new_sl <= current)
+    if unsafe:
+        log.warning(f"[{pair}] sub_tp tier={payload.tier} ratchet target {new_sl:.5f} "
+                    f"is already past current price {current:.5f} — chart progress has "
+                    f"diverged from real price action. Skipping to avoid an immediate, "
+                    f"unintended close.")
+        return {"skipped": True, "reason": "ratchet_target_unsafe",
+                "computed_sl": new_sl, "current_price": current}
 
     log.info(f"[{pair}] 🪜 SUB-TP tier={payload.tier} ({fraction:.0%} level) — "
              f"SL {trade.sl} → {new_sl:.5f}")
