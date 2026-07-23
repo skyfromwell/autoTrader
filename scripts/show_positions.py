@@ -161,6 +161,31 @@ def fpct(entry, cur, direction):
     v = ((cur - entry) / entry * 100) if direction == 'long' else ((entry - cur) / entry * 100)
     return '{:+.2f}%'.format(v)
 
+def tp_sl_progress(entry, cur, tp, sl, direction):
+    """% of the way from entry toward whichever of TP/SL price is currently
+    heading for — 0% at entry, +100% at TP, -100% at SL. This is the actual
+    'how close is this trade to its target' progress (same concept as the
+    Pine script's own chart_progress for sub_tp tiers), not just raw price
+    move — a big price swing on a wide-target pair can be far less "done"
+    than a small move on a tight one, and raw fpct() doesn't show that."""
+    if not entry or not cur:
+        return '—'
+    moved = (cur - entry) if direction == 'long' else (entry - cur)
+    if moved >= 0:
+        if not tp:
+            return '—'
+        span = (tp - entry) if direction == 'long' else (entry - tp)
+        if span <= 0:
+            return '—'
+        return '{:+.0f}% →TP'.format(moved / span * 100)
+    else:
+        if not sl:
+            return '—'
+        span = (entry - sl) if direction == 'long' else (sl - entry)
+        if span <= 0:
+            return '—'
+        return '{:+.0f}% →SL'.format(moved / span * 100)
+
 def fusd(v):
     return '${:+,.2f}'.format(v)
 
@@ -220,7 +245,7 @@ def print_subsection(subtitle, pairs, broker, broker_orders, dec=5):
             fsize(bsize),
             tp_str, sl_str,
             fusd(upnl),
-            fpct(entry, cur, d)))
+            tp_sl_progress(entry, cur, tp, sl, d)))
     return sub
 
 
