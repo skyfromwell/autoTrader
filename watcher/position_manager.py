@@ -170,6 +170,17 @@ class Trade:
     # Lets the external-edit merge in _save() attribute a disk change to its
     # source instead of silently letting one writer clobber another's trade.
     opened_by: Optional[str] = None
+    # Pine script's own generated ID (ticker+timeframe+open bar_time), carried
+    # on every alert (open/sub_tp/close) for the position that produced it.
+    # Lets sub_tp events be matched to the exact position they belong to
+    # instead of inferring a match from ticker + chart_tp proximity, which
+    # broke when two timeframe instances of the same script track the same
+    # ticker independently (see project's ONDO/BRENT/CL sub_tp mismatch).
+    origin_trade_id: Optional[str] = None
+    # Broker-side order/trade id captured at open: OANDA tradeID (the
+    # "Ticket" shown in the OANDA app), Hyperliquid/xyz "oid". Useful for
+    # reconciling our records against the broker's own transaction history.
+    broker_id: Optional[str] = None
 
 
 class CooldownManager:
@@ -520,12 +531,15 @@ class PositionManager:
     def open_trade(self, pair: str, direction: str, entry: float,
                    tp: Optional[float], sl: Optional[float], atr: float,
                    size: float, features: dict, bar_time=None,
-                   notional: int = 0, opened_by: str = "unknown") -> Trade:
+                   notional: int = 0, opened_by: str = "unknown",
+                   origin_trade_id: Optional[str] = None,
+                   broker_id: Optional[str] = None) -> Trade:
         trade = Trade(pair=pair, direction=direction, entry=entry,
                       tp=tp, sl=sl, atr=atr, size=size,
                       features=features, bar_time=bar_time,
                       watcher_tp=tp, watcher_sl=sl, notional=notional,
-                      opened_by=opened_by)
+                      opened_by=opened_by, origin_trade_id=origin_trade_id,
+                      broker_id=broker_id)
 
         def _mutate():
             self._trades[pair] = trade

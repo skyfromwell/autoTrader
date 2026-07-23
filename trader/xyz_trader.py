@@ -128,6 +128,7 @@ def open_long(
     statuses = (entry_res.get("response", {}).get("data", {}).get("statuses", [{}]))
     filled   = statuses[0].get("filled", {})
     entry_px = float(filled.get("avgPx", mid)) if filled else mid
+    entry_oid = filled.get("oid")
 
     # Recalculate TP/SL from actual fill
     tp = entry_px + atr_tp_mult * atr
@@ -167,6 +168,7 @@ def open_long(
         "size":    size,
         "margin":  margin_usd,
         "leverage": leverage,
+        "oid":     entry_oid,
     }
 
 
@@ -294,7 +296,7 @@ def open_short(
                    reduce_only=True)
 
     return {"coin": coin, "mid": mid, "entry": entry_px, "atr": atr, "tp": tp, "sl": sl,
-            "size": size, "margin": margin_usd, "leverage": leverage}
+            "size": size, "margin": margin_usd, "leverage": leverage, "oid": filled.get("oid")}
 
 
 def execute_trade(tv_pair: str, direction: str, price: float | None = None,

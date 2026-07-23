@@ -175,10 +175,13 @@ def _prefix(pair: str) -> str:
 
 
 def _broker_open(pair: str, direction: str, price: float | None, notional: int,
-                 tp: float | None = None, sl: float | None = None) -> bool:
-    """Returns whether the broker confirms the order succeeded — callers must
-    check this before recording the trade in position_state.json, otherwise
-    a rejected/misrouted order still gets tracked as if it were live."""
+                 tp: float | None = None, sl: float | None = None) -> tuple[bool, str | None]:
+    """Returns (success, broker_id) — callers must check success before
+    recording the trade in position_state.json, otherwise a rejected/
+    misrouted order still gets tracked as if it were live. broker_id is the
+    broker's own order/trade id (OANDA tradeID == the "Ticket" shown in the
+    OANDA app, Hyperliquid/xyz "oid") when the broker's response exposes
+    one, else None — stored on Trade.broker_id for reconciliation."""
     # xyz DEX commodities (GOLD/SILVER/CL/BRENTOIL) trade under whatever TV
     # prefix jingda currently sends (HIP3XYZ:, previously HYPERLIQUID:) — check
     # the symbol mapping before the prefix-based dispatch below, since a stale
@@ -186,14 +189,17 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
     # confusing "asset not found" (Alpaca has no idea what "CLUSDC.P" is).
     if tv_to_xyz(pair):
         res = xyz_execute(pair, direction, price=price, notional=notional)
-        return bool(res.get("entry")) and not res.get("skipped") and not res.get("error")
+        ok = bool(res.get("entry")) and not res.get("skipped") and not res.get("error")
+        return ok, (str(res.get("oid")) if res.get("oid") is not None else None)
     p = _prefix(pair)
     if p in _CRYPTO_PREFIXES:
         res = hl_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
-        return bool(res.get("success"))
+        ok = bool(res.get("success"))
+        return ok, (str(res.get("oid")) if res.get("oid") is not None else None)
     elif p in _FOREX_PREFIXES:
         res = oanda_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)
-        return bool(res.get("success"))
+        ok = bool(res.get("success"))
+        return ok, (str(res["trade_id"]) if res.get("trade_id") is not None else None)
     elif p in _CHINESE_PREFIXES:
         # No shorting A-shares, and a long here isn't a live fill yet — it
         # submits to the QMT mailbox instead (watcher/china_queue.py), same
@@ -204,11 +210,11 @@ def _broker_open(pair: str, direction: str, price: float | None, notional: int,
         # caller records an already-open position_state trade off this.
         if direction == "short":
             log.warning(f"[{pair}] ❌ BLOCKED — cannot short A-shares")
-            return False
+            return False, None
         _queue_order(pair, price or 0, "D", notional, type_="tv_alert", tp=tp, sl=sl)
-        return False
+        return False, None
     else:
-        return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl))
+        return bool(alpaca_execute(pair, direction, price=price, notional=notional, tp=tp, sl=sl)), None
 
 
 def _broker_close(pair: str, price: float = 0) -> None:
@@ -427,6 +433,22 @@ def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: Backgroun
         log.warning(f"[{pair}] sub_tp tier={payload.tier} — no tp recorded, skipping ratchet")
         return {"skipped": True, "reason": "no_tp_recorded"}
 
+    # trade_id (2026-07-22a-tradeid+): Pine now generates an id once when a
+    # position opens and stamps it on every later alert (sub_tp/tp_hit/close)
+    # for that same tracked position. If both sides have one, this is an
+    # exact match — a shorter-timeframe instance of the same script tracking
+    # the same ticker gets its own distinct id, so its sub_tp events can't be
+    # mistaken for this position's. Older alerts (pre-upgrade, or a script
+    # instance not yet re-saved on TradingView's side) won't carry trade_id
+    # yet, so this only rejects when we have both ids and they disagree —
+    # falls through to the chart_tp-divergence heuristic below otherwise.
+    if payload.trade_id and trade.origin_trade_id and payload.trade_id != trade.origin_trade_id:
+        log.warning(f"[{pair}] sub_tp tier={payload.tier} trade_id={payload.trade_id} "
+                    f"doesn't match tracked position's origin_trade_id={trade.origin_trade_id} "
+                    f"— different timeframe instance's signal stream, skipping ratchet")
+        return {"skipped": True, "reason": "trade_id_mismatch",
+                "recorded_trade_id": trade.origin_trade_id, "alert_trade_id": payload.trade_id}
+
     # sub_tp alerts carry no timeframe field (unlike open_long/open_short),
     # so a shorter-timeframe stream of the same Pine script tracking its own
     # progress toward its own, much closer target can fire tier events for
@@ -436,6 +458,9 @@ def _handle_sub_tp(pair: str, payload: AlertPayload, background_tasks: Backgroun
     # tier=3 alert that ratcheted its SL carried chart_tp=0.39002 — a ~6.9x
     # ATR divergence, clearly a different signal stream, not this bar's own
     # target drifting. Reject rather than ratchet against a mismatched tp.
+    # This ATR heuristic is now the fallback for alerts predating trade_id;
+    # once every open position on the books came from the new script
+    # version, trade_id above makes this redundant.
     if payload.chart_tp is not None and trade.atr:
         tp_divergence_atr = abs(tp - payload.chart_tp) / trade.atr
         if tp_divergence_atr > 2.0:
@@ -589,6 +614,8 @@ class AlertPayload(BaseModel):
     chart_close_price: Optional[float] = None
     tier:              Optional[int]   = None   # sub_tp: 1|2|3 (25%/50%/75% progress)
     chart_progress:    Optional[float] = None   # sub_tp: tp progress fraction at fire time
+    trade_id:          Optional[str]   = None   # Pine's own id, same on open/sub_tp/tp_hit/close
+                                                 # for one tracked position (2026-07-22a-tradeid+)
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -960,16 +987,18 @@ async def receive_alert(
                             f"{margin['pct']*100:.1f}% at/above warn wall, proceeding")
 
         notional = _forex_notional(pair, payload.notional)
-        ok = _broker_open(pair, direction, price, notional, tp=tp, sl=sl)
+        ok, broker_id = _broker_open(pair, direction, price, notional, tp=tp, sl=sl)
         if not ok:
             log.error(f"[TV→] ❌ {pair} broker open failed — not recording position_state")
             return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, direction,
                            entry=price or 0, tp=tp, sl=sl, atr=atr,
-                           size=notional, features={}, opened_by="tv_alert")
-        log.info(f"[TV→] ✅ Opened {direction.upper()} {pair}  tp={tp}  sl={sl}  atr={atr}")
+                           size=notional, features={}, opened_by="tv_alert",
+                           origin_trade_id=payload.trade_id, broker_id=broker_id)
+        log.info(f"[TV→] ✅ Opened {direction.upper()} {pair}  tp={tp}  sl={sl}  atr={atr}"
+                 f"  broker_id={broker_id}  trade_id={payload.trade_id}")
         return {"ok": True, "action": action, "pair": pair, "direction": direction,
-                "tp": tp, "sl": sl}
+                "tp": tp, "sl": sl, "broker_id": broker_id}
 
     if action == "close":
         _broker_close(pair, price or 0)
@@ -1005,14 +1034,15 @@ async def receive_alert(
                             f"{margin['pct']*100:.1f}% at/above warn wall, proceeding")
 
         notional = _forex_notional(pair, payload.notional)
-        ok = _broker_open(pair, new_dir, price, notional, tp=flip_tp, sl=flip_sl)
+        ok, broker_id = _broker_open(pair, new_dir, price, notional, tp=flip_tp, sl=flip_sl)
         if not ok:
             log.error(f"[TV→] ❌ {pair} flip broker open failed — not recording position_state")
             return {"ok": False, "action": action, "pair": pair, "error": "broker_open_failed"}
         manager.open_trade(pair, new_dir,
                            entry=price or 0, tp=flip_tp, sl=flip_sl, atr=0,
-                           size=notional, features={}, opened_by="tv_alert")
-        log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}")
+                           size=notional, features={}, opened_by="tv_alert",
+                           origin_trade_id=payload.trade_id, broker_id=broker_id)
+        log.info(f"[TV→] ✅ Flipped {pair} → {new_dir.upper()} at {price}  broker_id={broker_id}")
         return {"ok": True, "action": action, "pair": pair, "new_direction": new_dir}
 
     if action == "partial_close":
