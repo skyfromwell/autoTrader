@@ -57,7 +57,26 @@ _buffers: dict[str, dict] = {}   # coin -> {"fills": [...], "timer": Timer}
 # only the very first snapshot establishes the watermark (so old history at
 # startup is skipped); every fill after that — snapshot or live push — is
 # processed if it's newer than the watermark.
+#
+# Uses STRICT less-than against the watermark (not <=) plus a per-tid seen
+# set — a single market order that sweeps several price levels (a real SL/TP
+# trigger commonly does, 10-15 fills in one burst) produces multiple fills
+# that all share the *exact same* millisecond `time` value. The old `t <=
+# _last_seen_time` check treated every fill after the first in such a burst
+# as an already-processed duplicate and silently dropped it — so a close
+# that should have aggregated to the position's full size instead forwarded
+# only one tiny leftover fragment. That under-sized "close" then closed the
+# tracked trade in our books while most of the real position stayed open on
+# the exchange (confirmed against Hyperliquid's userFillsByTime — RENDER's
+# 2026-07-22 SL execution reduced 8328.4→1815.2, but only a single 331.3-unit
+# fragment ever reached tv_alert_server's /hl-fill, and 24 minutes later that
+# leftover long got closed out as part of a fresh short's flip execution,
+# producing another tiny fragment that closed the *new* short in our books
+# instead — a live position vanished from tracking twice). `tid` is unique
+# per fill even within a same-timestamp burst, so dedup on that instead.
 _last_seen_time: int | None = None
+_seen_tids: dict[int, int] = {}   # tid -> time(ms), pruned periodically
+_SEEN_TID_RETENTION_MS = 24 * 60 * 60 * 1000  # bursts flush in seconds; a day is generous
 
 
 def _flush(coin: str) -> None:
@@ -91,9 +110,22 @@ def _flush(coin: str) -> None:
 
 def _handle_fill(f: dict) -> None:
     global _last_seen_time
-    t = f.get("time", 0)
-    if _last_seen_time is not None and t <= _last_seen_time:
-        return  # already processed this fill in an earlier message
+    t   = f.get("time", 0)
+    tid = f.get("tid")
+
+    if _last_seen_time is not None and t < _last_seen_time:
+        return  # strictly older than anything we've processed — historical replay
+
+    if tid is not None:
+        if tid in _seen_tids:
+            return  # exact same fill re-delivered (e.g. reconnect snapshot replay)
+        _seen_tids[tid] = t
+        if len(_seen_tids) > 20_000:
+            cutoff = t - _SEEN_TID_RETENTION_MS
+            for old_tid, old_t in list(_seen_tids.items()):
+                if old_t < cutoff:
+                    del _seen_tids[old_tid]
+
     if _last_seen_time is None or t > _last_seen_time:
         _last_seen_time = t
 
